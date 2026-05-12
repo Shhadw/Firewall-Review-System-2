@@ -1,0 +1,13 @@
+order,protocol,src_ip,src_port,dst_ip,dst_port,action
+1,tcp,140.192.37.20,any,any,80,deny
+2,tcp,140.192.37.0/24,any,any,80,accept
+3,tcp,any,any,140.192.37.40,80,accept
+4,tcp,140.192.37.0/24,any,140.192.37.40,80,deny
+5,tcp,140.192.37.30,any,any,21,deny
+6,tcp,140.192.37.0/24,any,any,21,accept
+7,tcp,140.192.37.0/24,any,140.192.37.40,21,accept
+8,tcp,any,any,140.192.37.40,21,accept
+9,tcp,any,any,any,any,deny
+10,udp,140.192.37.0/24,any,any,53,accept
+11,udp,any,any,140.192.37.0/24,53,accept
+12,udp,any,any,any,any,deny

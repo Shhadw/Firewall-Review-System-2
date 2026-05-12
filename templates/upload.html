@@ -1,0 +1,20 @@
+{% extends 'index.html' %} {% block title %}New Scan - Firewall Reviews{%
+endblock %} {% block content %}
+<div class="card">
+  <h2>Upload Firewall Rules</h2>
+  <p class="subtitle">Upload your configuration CSV to begin analysis.</p>
+
+  <form id="uploadForm">
+    <div class="upload-area">
+      <input type="file" id="csvFile" accept=".csv" required />
+    </div>
+    <button type="submit" id="uploadBtn">Analyze Rules</button>
+  </form>
+
+  <div id="status" class="status-box hidden">
+    <p id="statusMessage"></p>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/uploadScript.js') }}"></script>
+{% endblock %}

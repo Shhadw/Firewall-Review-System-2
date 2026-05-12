@@ -1,0 +1,102 @@
+{% extends 'index.html' %} {% block title %}Dashboard - Firewall Reviews{%
+endblock %} {% block content %} {% if not csv_data %}
+<div class="card">
+  <h2>Welcome to Firewall Reviews</h2>
+  <p class="subtitle">
+    Your go-to tool for analyzing firewall configurations and enhancing network
+    security.
+  </p>
+  <p>
+    Use the navigation bar to upload new firewall configurations, view past
+    reports, or learn more about our team.
+  </p>
+</div>
+{% endif %} {% if csv_data %} {% if report %}
+<div class="card">
+  <h2>Firewall Report Summary</h2>
+  {% if filename %}
+  <p class="file-name"><strong>{{ filename }}</strong></p>
+  {% endif %}
+  <div class="report-summary">
+    <div class="status-badge status-{{ report.status|lower }}">
+      {{ report.status }}
+    </div>
+    <p class="total-risks">Total Risks Found: {{ report.total_risks }}</p>
+
+    <div class="severity-counts">
+      <span class="severity critical"
+        >Critical: {{ report.severity_count.critial }}</span
+      >
+      <span class="severity high">High: {{ report.severity_count.high }}</span>
+      <span class="severity medium"
+        >Medium: {{ report.severity_count.medium }}</span
+      >
+      <span class="severity low">Low: {{ report.severity_count.low }}</span>
+    </div>
+
+    {% if report.rule_needing_action %}
+    <div class="action-items">
+      <h3>Rules Requiring Action:</h3>
+      <ul>
+        {% for rule_id in report.rule_needing_action %}
+        <li>Rule ID: {{ rule_id }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %} {% if report.common_issues %}
+    <div class="common-issues">
+      <h3>Common Issues Found:</h3>
+      <ul>
+        {% for issue, count in report.common_issues.items() %}
+        <li>{{ issue }}: {{ count }} occurrence(s)</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <h2>Uploaded Firewall Configuration</h2>
+  {% if filename %}
+  <p class="file-name"><strong>{{ filename }}</strong></p>
+  {% endif %}
+  <div class="table-container">
+    <table class="data-table">
+      <thead>
+        <tr>
+          {% for header in csv_data[0] %}
+          <th>{{ header }}</th>
+          {% endfor %}
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in csv_data[1:] %} {% set action = row[1]|upper if row[1]
+        else '' %} {% set rule_id = row[0] %} {% set is_flagged = false %} {% if
+        report and report.findings %} {% for finding in report.findings %} {% if
+        finding.rule_id|string == rule_id|string %} {% set is_flagged = true %}
+        {% endif %} {% endfor %} {% endif %}
+        <tr
+          class="{% if action in ['DENY', 'deny'] %} row-deny {% elif action in ['ACCEPT', 'ALLOW', 'accept', 'allow'] %} row-accept {% endif %}"
+        >
+          {% for cell in row %}
+          <td contenteditable="true">{{ cell }}</td>
+          {% endfor %}
+          <td>
+            {% if is_flagged %}
+            <span class="flag-icon" title="Security Risk Detected">WARN</span>
+            {% elif action in ['DENY', 'deny'] %}
+            <span class="status-icon deny">NO</span>
+            {% elif action in ['ACCEPT', 'ALLOW', 'accept', 'allow'] %}
+            <span class="status-icon accept">OK</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %} {% endblock %}

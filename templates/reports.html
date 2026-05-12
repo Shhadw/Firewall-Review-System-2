@@ -1,0 +1,90 @@
+{% extends 'index.html' %} {% block title %}Past Reports - Firewall Reviews{%
+endblock %} {% block content %}
+<div class="card">
+  <h2>Past Reports</h2>
+
+  {% if history %}
+  <div class="history-selector">
+    <label for="history-select">Select a previous file:</label>
+    <select
+      id="history-select"
+      class="form-control"
+      onchange="loadHistoryReport(this.value)"
+    >
+      <option value="">-- Select a file --</option>
+      {% for entry in history %}
+      <option value="{{ loop.index0 }}">
+        {{ entry.filename }} — {{ entry.report.status }}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div
+    id="history-report"
+    class="report-display"
+    style="display: none; margin-top: 20px"
+  >
+    <h3>Report Details</h3>
+    <div class="report-summary">
+      <div class="status-badge" id="history-status"></div>
+      <p>Total Risks: <strong id="history-risks"></strong></p>
+
+      <div class="severity-counts">
+        <span class="severity critical"
+          >Critical: <span id="history-critical"></span
+        ></span>
+        <span class="severity high">High: <span id="history-high"></span></span>
+        <span class="severity medium"
+          >Medium: <span id="history-medium"></span
+        ></span>
+        <span class="severity low">Low: <span id="history-low"></span></span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Ensure history data is safely parsed
+    const historyData = JSON.parse("{{ history | tojson | safe }}");
+
+    function loadHistoryReport(index) {
+      const reportDiv = document.getElementById("history-report");
+
+      // Reset and hide if no selection is made
+      if (index === "" || !historyData[index]) {
+        reportDiv.style.display = "none";
+        return;
+      }
+
+      const entry = historyData[index];
+      const report = entry.report;
+
+      // Populate the details
+      document.getElementById("history-status").textContent = report.status;
+      document.getElementById("history-status").className =
+        "status-badge status-" + report.status.toLowerCase();
+      document.getElementById("history-risks").textContent = report.total_risks;
+
+      // Fixed the 'critial' typo and added fallback 0
+      document.getElementById("history-critical").textContent =
+        report.severity_count.critical || 0;
+      document.getElementById("history-high").textContent =
+        report.severity_count.high || 0;
+      document.getElementById("history-medium").textContent =
+        report.severity_count.medium || 0;
+      document.getElementById("history-low").textContent =
+        report.severity_count.low || 0;
+
+      reportDiv.style.display = "block";
+    }
+  </script>
+
+  {% else %}
+  <div class="empty-state">
+    <p class="subtitle">
+      No previous reports found. Upload a firewall configuration to get started.
+    </p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
