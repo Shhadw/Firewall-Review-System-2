@@ -1,13 +1,21 @@
-{% extends 'index.html' %} {% block title %}New Scan - Firewall Reviews{%
-endblock %} {% block content %}
+{% extends 'index.html' %}
+{% block title %}New Scan - Firewall Reviews{% endblock %}
+
+{% block content %}
 <div class="card">
   <h2>Upload Firewall Rules</h2>
   <p class="subtitle">Upload your configuration CSV to begin analysis.</p>
 
   <form id="uploadForm">
-    <div class="upload-area">
+    <div class="upload-area" id="dropZone">
       <input type="file" id="csvFile" accept=".csv" required />
+      <label for="csvFile" class="file-label">
+        <div class="upload-icon">📁</div>
+        <p id="fileName"><strong>Choose a file</strong> or drag it here</p>
+        <span>Supported format: .CSV</span>
+      </label>
     </div>
+
     <button type="submit" id="uploadBtn">Analyze Rules</button>
   </form>
 

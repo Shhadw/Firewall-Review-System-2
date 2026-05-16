@@ -37,7 +37,7 @@ def upload():
             # --- 1. CAPTURE RAW DATA FOR UI TABLE (LIST OF LISTS) ---
             # Resetting pointer ensures we read from the start of the file [cite: 1083]
             file.seek(0)
-            content = file.read().decode('utf-8')
+            content = file.read().decode('utf-8-sig', errors='ignore')            
             raw_reader = csv.reader(io.StringIO(content))
             csv_raw_rows = list(raw_reader) # [cite: 1083]
 
