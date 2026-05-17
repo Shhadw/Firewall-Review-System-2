@@ -1,4 +1,7 @@
-body {
+/* =========================================
+   1. BASE & TYPOGRAPHY
+   ========================================= */
+   body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: #0f172a;
     color: #f8fafc;
@@ -11,6 +14,20 @@ body h2 {
     margin-bottom: 1rem;
 }
 
+h2 {
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+}
+
+.subtitle {
+    color: #7f8c8d;
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+}
+
+/* =========================================
+   2. NAVIGATION & HEADER
+   ========================================= */
 header {
     background: #1e293b;
     padding: 1rem 5%;
@@ -56,6 +73,64 @@ nav ul li a:hover {
     color: #38bdf8;
 }
 
+/* =========================================
+   3. LAYOUT & CONTAINERS
+   ========================================= */
+.content-area {
+    flex-grow: 1;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.card {
+    background: #1e293b;
+    padding: 20px;
+    border-radius: 10px;
+    border: 1px solid #334155;
+    width: 100%;
+    max-width: 800px;
+    text-align: center;
+    margin: 0 auto;
+}
+
+.card h2 {
+    color: #38bdf8;
+    margin-bottom: 10px;
+}
+
+.reviews-container {
+    padding: 50px 5%;
+}
+
+.reviews-container h2 {
+    color: #38bdf8;
+    margin-bottom: 1rem;
+}
+
+.review-grid {
+    display: flex;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.chart-card {
+    grid-column: 1 / -1;
+    padding: 30px;
+    margin-top: 20px;
+    max-width: 50%;
+    margin: 20px auto;
+}
+
+#performanceChart {
+    max-height: 400px;
+}
+
+/* =========================================
+   4. DATA TABLES (CLEANED)
+   ========================================= */
 .table-container {
     overflow-x: auto;
     margin-top: 1rem;
@@ -80,234 +155,26 @@ nav ul li a:hover {
     font-weight: 600;
 }
 
-.data-table tr:hover {
-    background: #064481 !important;
-}
-
-.data-table .row-deny:hover {
-    background: #ff9999 !important;
-}
-
-.data-table .row-accept:hover {
-    background: #99ff99 !important;
-}
-
 .data-table td {
     color: #ffffff;
 }
 
-.reviews-container {
-    padding: 50px 5%;
+/* Subtle hover effects instead of solid blinding backgrounds */
+.data-table tr:hover {
+    background: #1e293b !important;
 }
 
-.reviews-container h2 {
-    color: #38bdf8;
-    margin-bottom: 1rem;
+.data-table .row-deny:hover {
+    background: rgba(220, 38, 38, 0.2) !important; /* Soft transparent red */
 }
 
-.review-grid {
-    display: flex;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 20px;
+.data-table .row-accept:hover {
+    background: rgba(22, 163, 74, 0.2) !important; /* Soft transparent green */
 }
 
-.card {
-    background: #1e293b;
-    padding: 20px;
-    border-radius: 10px;
-    border: 1px solid #334155;
-    width: 100%;
-    max-width: 800px;
-    text-align: center;
-    margin: 0 auto;
-}
-
-.card h2 {
-    color: #38bdf8;
-    margin-bottom: 10px;
-}
-
-.rating {
-    position: sticky;
-    top: 20px;
-    right: 20px;
-    background: #38bdf8;
-    color: #0f172a;
-    padding: 5px 0px;
-    font-weight: bold;
-}
-
-.read-more {
-    display: inline-block;
-    margin-top: 15px;
-    color: #38bdf8;
-    text-decoration: none;
-    font-weight: 600;
-}
-
-.chart-card {
-    grid-column: 1 / -1;
-    padding: 30px;
-    margin-top: 20px;
-    max-width: 50%;
-    margin: 20px auto;
-}
-
-#performanceChart {
-    max-height: 400px;
-}
-
-
-.content-area {
-    flex-grow: 1;
-    padding: 40px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-}
-
-
-h2 {
-    color: #2c3e50;
-    margin-bottom: 0.5rem;
-}
-
-.subtitle {
-    color: #7f8c8d;
-    font-size: 0.9rem;
-    margin-bottom: 1.5rem;
-}
-
-.upload-area {
-    position: relative;
-    overflow: hidden;
-    margin-bottom: 1.5rem;
-    border: 2px dashed #cbd5e0;
-    padding: 20px;
-    border-radius: 8px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-#csvFile {
-position: absolute;
-    width: 100%;
-    height: 100%;
-    top: 0;
-    left: 0;
-    opacity: 0;
-    cursor: pointer;
-    z-index: 1;
-}
-
-.upload-area:hover, .upload-area.dragover {
-  border-color: #3b82f6;
-  background: #eff6ff;
-}
-
-.file-label {
-  pointer-events: none; 
-}
-
-.upload-icon {
-  font-size: 2.5rem;
-  margin-bottom: 10px;
-}
-
-.file-label p {
-  font-size: 1.1rem;
-  color: #1e293b;
-  margin: 5px 0;
-}
-
-.file-label span {
-  font-size: 0.85rem;
-  color: #64748b;
-}
-
-.upload-area.file-selected {
-  border-style: solid;
-  border-color: #10b981;
-  background: #f0fdf4;
-}
-
-button {
-    background-color: #3498db;
-    color: white;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 6px;
-    cursor: pointer;
-    position: relative;
-    z-index: 10;
-    width: 100%;
-    font-weight: bold;
-    transition: background 0.3s;
-}
-
-button:hover {
-    background-color: #2980b9;
-}
-
-.status-box {
-    margin-top: 1.5rem;
-    padding: 10px;
-    border-radius: 4px;
-    font-size: 0.9rem;
-}
-
-.hidden {
-    display: none;
-}
-
-.success {
-    background-color: #d4edda;
-    color: #155724;
-}
-
-.error {
-    background-color: #f8d7da;
-    color: #721c24;
-}
-
-.team-row {
-    display: flex;
-    justify-content: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
-    flex-wrap: wrap;
-}
-
-.team-row li {
-    background: #f1f5f9;
-    padding: 0.5rem 0.5rem;
-    border-radius: 8px;
-    min-width: 200px;
-    text-align: center;
-}
-
-.team-row .name {
-    font-weight: 600;
-    color: #1e293b;
-    display: block;
-}
-
-.team-row .role {
-    font-size: 0.85rem;
-    color: #64748b;
-}
-
-.name {
-    font-weight: bold;
-}
-
-.role{
-    font-style: italic;
-    padding-bottom: 10px;
-}
-
+/* =========================================
+   5. STATUS & BADGES
+   ========================================= */
 .report-summary {
     margin-bottom: 1.5rem;
     padding: 1rem;
@@ -390,29 +257,11 @@ button:hover {
     color: #dc2626;
 }
 
-.row-deny,
-.row-deny td {
-    background-color: #ff0000 !important;
-    background: #ff0000 !important;
-}
+/* Icons */
+.status-icon { font-size: 1.2rem; }
+.status-icon.deny { color: #dc2626; }
+.status-icon.accept { color: #16a34a; }
 
-.row-accept,
-.row-accept td {
-    background-color: #00ff00 !important;
-    background: #00ff00 !important;
-}
-
-.status-icon {
-    font-size: 1.2rem;
-}
-
-.status-icon.deny {
-    color: #dc2626;
-}
-
-.status-icon.accept {
-    color: #16a34a;
-}
 .flag-icon {
     font-size: 1.3rem;
     cursor: help;
@@ -424,105 +273,121 @@ button:hover {
     50% { opacity: 0.6; }
 }
 
-tr:has(.flag-icon) {
-    background-color: #fffbeb;
-    border-left: 3px solid #f59e0b;
-}
-
-/* --- Task 5: Cyber Dashboard Aesthetic --- */
-:root {
-    --bg-dark: #0d1117;
-    --card-bg: #161b22;
-    --cyber-neon-green: #00ff66;
-    --cyber-neon-red: #ff3366;
-    --cyber-neon-blue: #00f2fe;
-    --text-main: #c9d1d9;
-    --border-color: #30363d;
-}
-
-/* Applying dark theme specifically to the results wrapper page */
-.results-container {
-    max-width: 900px;
-    margin: 40px auto;
+/* =========================================
+   6. BUTTONS & FORMS (INCLUDING NEW DECISION BTNS)
+   ========================================= */
+.upload-area {
+    margin-bottom: 1.5rem;
+    border: 2px dashed #cbd5e0;
     padding: 20px;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-/* Tally Board Layout */
-.tally-board {
+    border-radius: 8px;
     display: flex;
-    gap: 20px;
-    margin-bottom: 25px;
+    flex-direction: column;
+    align-items: center;
 }
-.tally-card {
-    background: var(--card-bg);
-    border: 1px solid var(--border-color);
-    padding: 15px 25px;
-    border-radius: 8px;
-    flex: 1;
-    text-align: left;
-}
-.tally-card.kept { border-left: 4px solid var(--cyber-neon-green); }
-.tally-card.removed { border-left: 4px solid var(--cyber-neon-red); }
-.tally-label { font-size: 0.8rem; color: #8b949e; letter-spacing: 1px; font-weight: bold; }
-.tally-value { display: block; font-size: 2.2rem; font-weight: bold; font-family: monospace; color: white; margin-top: 5px; }
 
-/* Cyber Table Design */
-.cyber-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    overflow: hidden;
-}
-.cyber-table th, .cyber-table td {
-    padding: 16px;
-    text-align: left;
-    border-bottom: 1px solid var(--border-color);
-}
-.cyber-table th { 
-    background-color: #21262d; 
-    font-size: 0.85rem; 
-    color: var(--cyber-neon-blue); 
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-.rule-id { font-family: monospace; color: #58a6ff; font-weight: bold; }
-
-/* Status Badges */
-.badge { padding: 5px 10px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; display: inline-block; }
-.badge.danger { background: rgba(255, 51, 102, 0.1); color: var(--cyber-neon-red); border: 1px solid rgba(255, 51, 102, 0.3); }
-.badge.warn { background: rgba(255, 170, 0, 0.1); color: #ffaa00; border: 1px solid rgba(255, 170, 0, 0.3); }
-
-/* Buttons & Animations */
-.action-buttons { display: flex; gap: 10px; }
-.btn-action {
-    padding: 8px 16px;
-    border: 1px solid var(--border-color);
-    background: #21262d;
-    color: var(--text-main);
+button {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    padding: 12px 24px;
     border-radius: 6px;
     cursor: pointer;
-    font-weight: 500;
-    transition: all 0.2s ease;
-}
-.keep-btn:hover { border-color: var(--cyber-neon-green); color: var(--cyber-neon-green); background: rgba(0, 255, 102, 0.02); }
-.remove-btn:hover { border-color: var(--cyber-neon-red); color: var(--cyber-neon-red); background: rgba(255, 51, 102, 0.02); }
-
-/* Fading Row State */
-.row-faded {
-    opacity: 0.3;
-    filter: grayscale(90%);
-    pointer-events: none;
-    transition: all 0.4s ease-in-out;
-}
-.btn-status-active {
+    width: 100%;
     font-weight: bold;
-    font-size: 0.9rem;
-    padding: 6px 12px;
-    border-radius: 4px;
-    border: 1px solid transparent;
+    transition: background 0.3s;
 }
-.btn-status-active.kept-state { color: var(--cyber-neon-green); border-color: rgba(0, 255, 102, 0.4); background: rgba(0, 255, 102, 0.05); }
-.btn-status-active.removed-state { color: var(--cyber-neon-red); border-color: rgba(255, 51, 102, 0.4); background: rgba(255, 51, 102, 0.05); }
+
+button:hover { background-color: #2980b9; }
+
+/* The New Feature Buttons */
+.btn-keep {
+    background-color: #16a34a;
+    color: white;
+    border: none;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    margin-right: 4px;
+    width: auto;
+}
+
+.btn-keep:hover { background-color: #15803d; }
+
+.btn-remove {
+    background-color: #dc2626;
+    color: white;
+    border: none;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    width: auto;
+}
+
+.btn-remove:hover { background-color: #b91c1c; }
+
+/* =========================================
+   7. UTILITIES & MISC
+   ========================================= */
+.hidden { display: none; }
+
+.status-box {
+    margin-top: 1.5rem;
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.success { background-color: #d4edda; color: #155724; }
+.error { background-color: #f8d7da; color: #721c24; }
+
+.rating {
+    position: sticky;
+    top: 20px;
+    right: 20px;
+    background: #38bdf8;
+    color: #0f172a;
+    padding: 5px 0px;
+    font-weight: bold;
+}
+
+.read-more {
+    display: inline-block;
+    margin-top: 15px;
+    color: #38bdf8;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+/* Team Section */
+.team-row {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.team-row li {
+    background: #f1f5f9;
+    padding: 0.5rem 0.5rem;
+    border-radius: 8px;
+    min-width: 200px;
+    text-align: center;
+}
+
+.team-row .name {
+    font-weight: 600;
+    color: #1e293b;
+    display: block;
+}
+
+.team-row .role {
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+.name { font-weight: bold; }
+.role { font-style: italic; padding-bottom: 10px; }
