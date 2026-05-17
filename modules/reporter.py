@@ -1,37 +1,68 @@
+# for cvss
+severity_scores = {
+    "low":      3.9,
+    "medium":   6.9,
+    "high":     8.9,
+    "critical": 10.0,
+}
+
+# for determining system status
+severity_rank = {
+    "low":      1,
+    "medium":   2,
+    "high":     3,
+    "critical": 4,
+}
+
 def generate_summary(findings_list):
     total_risks = len(findings_list)
-    # FIX: Corrected spelling from 'critial' to 'critical'
     severity_count = {"critical": 0, "high": 0, "medium": 0, "low": 0}
     issue_count = {}
     action_items = []
-    
+
+    worst_rank = 0
+    total_score = 0.0
+
     for finding in findings_list:
         severity = finding.get("severity", "").lower()
         issue = finding.get("issue", "Unknown Issue")
         rule_id = finding.get("rule_id", "Unknown")
-        
+
         if severity in severity_count:
             severity_count[severity] += 1
+
+        total_score += severity_scores.get(severity, 0.0)
 
         issue_count[issue] = issue_count.get(issue, 0) + 1
 
         if severity in ["high", "critical"]:
             if rule_id not in action_items:
                 action_items.append(rule_id)
-            
-    # FIX: Corrected spelling here as well
-    high_critical_total = severity_count["high"] + severity_count["critical"]
 
-    if high_critical_total > 0:
+        rank = severity_rank.get(severity, 0)
+        if rank > worst_rank:
+            worst_rank = rank
+
+    # determine system status, worst-case-wins (NIST 800-30)
+    if worst_rank >= severity_rank["critical"]:
         system_status = "DANGER"
-    elif severity_count["medium"] > 0:
+    elif worst_rank >= severity_rank["high"]:
         system_status = "WARNING"
+    elif worst_rank >= severity_rank["medium"]:
+        system_status = "CAUTION"
     else:
         system_status = "SECURE"
+
+    # CVSS-based scoring
+    if total_risks > 0:
+        average_score = round(total_score / total_risks, 2)
+    else:
+        average_score = 0.0
 
     return {
         'total_risks': total_risks,
         'status': system_status,
+        'average_severity_score': average_score, # new return value
         'severity_count': severity_count,
         'common_issues': issue_count,
         'rule_needing_action': action_items
