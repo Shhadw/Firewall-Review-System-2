@@ -1,102 +1,293 @@
-{% extends 'index.html' %} {% block title %}Dashboard - Firewall Reviews{%
-endblock %} {% block content %} {% if not csv_data %}
-<div class="card">
-  <h2>Welcome to Firewall Reviews</h2>
-  <p class="subtitle">
-    Your go-to tool for analyzing firewall configurations and enhancing network
-    security.
-  </p>
-  <p>
-    Use the navigation bar to upload new firewall configurations, view past
-    reports, or learn more about our team.
-  </p>
-</div>
-{% endif %} {% if csv_data %} {% if report %}
-<div class="card">
-  <h2>Firewall Report Summary</h2>
-  {% if filename %}
-  <p class="file-name"><strong>{{ filename }}</strong></p>
-  {% endif %}
-  <div class="report-summary">
-    <div class="status-badge status-{{ report.status|lower }}">
-      {{ report.status }}
-    </div>
-    <p class="total-risks">Total Risks Found: {{ report.total_risks }}</p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1280" />
+    <title>FirewallReviews – Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="dashboard.css" />
+</head>
+<body>
 
-    <div class="severity-counts">
-      <span class="severity critical"
-        >Critical: {{ report.severity_count.critial }}</span
-      >
-      <span class="severity high">High: {{ report.severity_count.high }}</span>
-      <span class="severity medium"
-        >Medium: {{ report.severity_count.medium }}</span
-      >
-      <span class="severity low">Low: {{ report.severity_count.low }}</span>
+<aside class="sidebar">
+    <div class="sidebar-brand">
+        <div class="brand-name">Firewall Reviews</div>
+        <div class="brand-sub">Information Security Tools</div>
     </div>
 
-    {% if report.rule_needing_action %}
-    <div class="action-items">
-      <h3>Rules Requiring Action:</h3>
-      <ul>
-        {% for rule_id in report.rule_needing_action %}
-        <li>Rule ID: {{ rule_id }}</li>
-        {% endfor %}
-      </ul>
-    </div>
-    {% endif %} {% if report.common_issues %}
-    <div class="common-issues">
-      <h3>Common Issues Found:</h3>
-      <ul>
-        {% for issue, count in report.common_issues.items() %}
-        <li>{{ issue }}: {{ count }} occurrence(s)</li>
-        {% endfor %}
-      </ul>
-    </div>
-    {% endif %}
-  </div>
-</div>
-{% endif %}
+    <nav class="sidebar-nav">
+        <a class="nav-item active" href="#">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+                <rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/>
+                <rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/>
+            </svg>
+            Dashboard
+        </a>
+        <a class="nav-item" href="#">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+                <circle cx="8" cy="8" r="6"/><line x1="8" y1="5" x2="8" y2="8"/><line x1="8" y1="8" x2="10.5" y2="10.5"/>
+            </svg>
+            New Scan
+        </a>
+        <a class="nav-item" href="past-reports.html">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+                <path d="M2 4h12M2 8h10M2 12h7"/>
+            </svg>
+            Past Reports
+        </a>
+        <a class="nav-item" href="#">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+                <circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/>
+            </svg>
+            Team Credits
+        </a>
+    </nav>
 
-<div class="card">
-  <h2>Uploaded Firewall Configuration</h2>
-  {% if filename %}
-  <p class="file-name"><strong>{{ filename }}</strong></p>
-  {% endif %}
-  <div class="table-container">
-    <table class="data-table">
-      <thead>
-        <tr>
-          {% for header in csv_data[0] %}
-          <th>{{ header }}</th>
-          {% endfor %}
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in csv_data[1:] %} {% set action = row[1]|upper if row[1]
-        else '' %} {% set rule_id = row[0] %} {% set is_flagged = false %} {% if
-        report and report.findings %} {% for finding in report.findings %} {% if
-        finding.rule_id|string == rule_id|string %} {% set is_flagged = true %}
-        {% endif %} {% endfor %} {% endif %}
-        <tr
-          class="{% if action in ['DENY', 'deny'] %} row-deny {% elif action in ['ACCEPT', 'ALLOW', 'accept', 'allow'] %} row-accept {% endif %}"
-        >
-          {% for cell in row %}
-          <td contenteditable="true">{{ cell }}</td>
-          {% endfor %}
-          <td>
-            {% if is_flagged %}
-            <span class="flag-icon" title="Security Risk Detected">WARN</span>
-            {% elif action in ['DENY', 'deny'] %}
-            <span class="status-icon deny">NO</span>
-            {% elif action in ['ACCEPT', 'ALLOW', 'accept', 'allow'] %}
-            <span class="status-icon accept">OK</span>
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+    <div class="sidebar-footer">
+        <a class="nav-item" href="#" style="padding:8px 0; font-size:11px;">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+                <path d="M6 3H3a1 1 0 00-1 1v9a1 1 0 001 1h10a1 1 0 001-1v-3M9 8h6M12 5l3 3-3 3"/>
+            </svg>
+           EXPORT GLOBAL LOGS
+        </a>
+    </div>
+</aside>
+
+<div class="main">
+
+    <header class="topbar">
+        <span class="topbar-title">Dashboard</span>
+
+        <div class="topbar-search">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+                <circle cx="6.5" cy="6.5" r="5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/>
+            </svg>
+            <input type="text" placeholder="Search rules or IPs…" />
+        </div>
+
+        <div class="topbar-spacer"></div>
+
+        <div class="topbar-badges">
+            <div class="compliance-pill">
+                <span class="pill-title">Compliance:</span>
+                <span class="pill-value">ISO/IEC 27001</span>
+            </div>
+            <div class="compliance-pill">
+                <span class="pill-title">Compliance:</span>
+                <span class="pill-value">NIST SP 800-41</span>
+            </div>
+        </div>
+
+        <div class="topbar-actions">
+            <div class="topbar-icon-btn">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+                    <path d="M8 2a5 5 0 014.9 6l1.6 4H1.5l1.6-4A5 5 0 018 2z"/><path d="M6.5 13.5a1.5 1.5 0 003 0"/>
+                </svg>
+            </div>
+            <div class="topbar-icon-btn">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+                    <circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/>
+                </svg>
+            </div>
+        </div>
+    </header>
+
+    <main class="content">
+
+        <div class="stat-row">
+            <div class="stat-card">
+                <div class="stat-label">Total Evaluated</div>
+                <div class="stat-value">1,500</div>
+            </div>
+            <div class="stat-card highlight-critical">
+                <div class="stat-label">Critical Risk</div>
+                <div class="stat-value">42</div>
+                <div class="stat-delta neg">+3 24h</div>
+            </div>
+            <div class="stat-card highlight-high">
+                <div class="stat-label">High Risk</div>
+                <div class="stat-value" style="color:var(--high);">156</div>
+                <div class="stat-delta pos">−12 24h</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Medium Risk</div>
+                <div class="stat-value highlight-medium" style="color:var(--medium);">384</div>
+                <div class="stat-delta neu">— 24h</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Low Risk</div>
+                <div class="stat-value" style="color:var(--low);">916</div>
+                <div class="stat-delta pos">+ 24h</div>
+            </div>
+        </div>
+
+        <div class="mid-row">
+            <div class="danger-card">
+                <div class="danger-header">
+                    <span class="danger-badge">Danger</span>
+                    <span class="danger-filename">university_firewall_v2.csv</span>
+                    <span class="danger-scan">Last scanned: 12 minutes ago</span>
+                </div>
+                <div class="danger-body">
+                    <div>
+                        <div class="issues-label">Common Issues</div>
+                        <ul class="issues-list">
+                            <li>Excessive 'Any' Source IP permissions</li>
+                            <li>Shadowed rules detected in Vlan-102</li>
+                            <li>Missing 'Log' action on sensitive ports</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <div class="violations-label">Compliance Violations</div>
+                        <div class="violation-tags">
+                            <span class="vtag vtag-nist">NIST 800-41: AC-4</span>
+                            <span class="vtag vtag-iso">ISO 27001: A.12.1.1</span>
+                            <span class="vtag vtag-pci">PCI-DSS: 1.2.1</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="progress-card">
+                <div class="progress-card-title">Review Progress</div>
+                <div class="progress-bar-wrap">
+                    <div class="progress-bar-fill"></div>
+                </div>
+                <div class="progress-count"><span>124</span> of 1,500 rules reviewed</div>
+                <div class="progress-breakdown">
+                    <div class="pb-row">
+                        <div class="pb-dot" style="background:var(--low);"></div>
+                        <span class="pb-label">Kept</span>
+                        <span class="pb-val">82</span>
+                    </div>
+                    <div class="pb-row">
+                        <div class="pb-dot" style="background:var(--critical);"></div>
+                        <span class="pb-label">Removed</span>
+                        <span class="pb-val">36</span>
+                    </div>
+                    <div class="pb-row">
+                        <div class="pb-dot" style="background:var(--high);"></div>
+                        <span class="pb-label">Pending</span>
+                        <span class="pb-val">6</span>
+                    </div>
+                </div>
+                <button class="export-btn">Export Audit Logs</button>
+            </div>
+        </div>
+
+        <div class="queue-card">
+            <div class="queue-header">
+                <span class="queue-title">Rule Audit Queue</span>
+                <span class="filter-pill">Filter: Unreviewed</span>
+                <span class="sort-pill">Sort: Severity ↓</span>
+            </div>
+
+            <div class="table-scroll-wrap">
+                <table class="audit-table">
+                    <thead>
+                    <tr>
+                        <th>Rule ID</th>
+                        <th>Source IP</th>
+                        <th>Dest IP</th>
+                        <th>Port</th>
+                        <th>Protocol</th>
+                        <th>Hits</th>
+                        <th>Status</th>
+                        <th>Compliance</th>
+                        <th>Decision</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><a class="rule-id-link" href="#">FW-R-0892</a></td>
+                        <td><span class="ip-any">any</span></td>
+                        <td><span class="ip-val">10.0.4.52</span></td>
+                        <td><span class="port-val">22</span></td>
+                        <td><span class="proto-val">TCP</span></td>
+                        <td>
+                            <div class="hits-zero">
+                                <span>0</span>
+                                <div class="warn-icon">⚠</div>
+                            </div>
+                        </td>
+                        <td><span class="status-badge status-critical">Critical</span></td>
+                        <td>
+                            <button class="comp-tag-btn">
+                                VIEW TAG
+                                <span class="arrow-dn">↓</span>
+                            </button>
+                        </td>
+                        <td>
+                            <div class="decision-cell">
+                                <button class="btn-keep">Keep</button>
+                                <button class="btn-remove">Remove</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><a class="rule-id-link" href="#">FW-R-0941</a></td>
+                        <td><span class="ip-val">172.16.0.0/16</span></td>
+                        <td><span class="ip-any">any</span></td>
+                        <td><span class="port-val">443</span></td>
+                        <td><span class="proto-val">TCP</span></td>
+                        <td><span class="hits-val">14.2k</span></td>
+                        <td><span class="status-badge status-high">High</span></td>
+                        <td>
+                            <button class="comp-tag-btn">
+                                VIEW TAG
+                                <span class="arrow-dn">↓</span>
+                            </button>
+                        </td>
+                        <td>
+                            <div class="decision-cell">
+                                <button class="btn-keep">Keep</button>
+                                <button class="btn-remove">Remove</button>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="findings-panel">
+                <div class="findings-title">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+                        <path d="M8 2l1.8 3.6L14 6.4l-3 2.9.7 4.1L8 11.4l-3.7 2 .7-4.1L2 6.4l4.2-.8L8 2z"/>
+                    </svg>
+                    Compliance Findings — Rule FW-R-0892
+                </div>
+
+                <div class="findings-body">
+                    <div class="findings-left">
+                        <div class="sev-row">
+                            <span class="sev-badge">Severity: Critical</span>
+                            <span class="code-ref">CODE: SEC-001-ANY</span>
+                        </div>
+                        <p class="findings-desc">
+                            This rule allows "Any" source IP address to access the internal management subnet via SSH (Port 22). This violates the principle of least privilege.
+                        </p>
+                        <div class="findings-tags">
+                            <span class="ftag">NIST 800-41</span>
+                            <span class="ftag">ISO 27001</span>
+                        </div>
+                    </div>
+
+                    <div class="findings-right">
+                        <div class="rec-label">
+                            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/>
+                            </svg>
+                            Recommendation
+                        </div>
+                        <p class="rec-text">
+                            Restrict source IP range to authorized VPN Concentrator set. Implement MFA at the network layer.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
 </div>
-{% endif %} {% endblock %}
+
+</body>
+</html>
