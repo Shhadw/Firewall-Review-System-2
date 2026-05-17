@@ -1,90 +1,229 @@
-{% extends 'index.html' %} {% block title %}Past Reports - Firewall Reviews{%
-endblock %} {% block content %}
-<div class="card">
-  <h2>Past Reports</h2>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1280" />
+    <title>FirewallReviews – Past Reports</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="reports.css" />
+</head>
+<body>
 
-  {% if history %}
-  <div class="history-selector">
-    <label for="history-select">Select a previous file:</label>
-    <select
-      id="history-select"
-      class="form-control"
-      onchange="loadHistoryReport(this.value)"
-    >
-      <option value="">-- Select a file --</option>
-      {% for entry in history %}
-      <option value="{{ loop.index0 }}">
-        {{ entry.filename }} — {{ entry.report.status }}
-      </option>
-      {% endfor %}
-    </select>
-  </div>
-
-  <div
-    id="history-report"
-    class="report-display"
-    style="display: none; margin-top: 20px"
-  >
-    <h3>Report Details</h3>
-    <div class="report-summary">
-      <div class="status-badge" id="history-status"></div>
-      <p>Total Risks: <strong id="history-risks"></strong></p>
-
-      <div class="severity-counts">
-        <span class="severity critical"
-          >Critical: <span id="history-critical"></span
-        ></span>
-        <span class="severity high">High: <span id="history-high"></span></span>
-        <span class="severity medium"
-          >Medium: <span id="history-medium"></span
-        ></span>
-        <span class="severity low">Low: <span id="history-low"></span></span>
-      </div>
+<aside class="sidebar">
+    <div class="sidebar-brand">
+        <div class="brand-name">Firewall Reviews</div>
+        <div class="brand-sub">Information Security Tools</div>
     </div>
-  </div>
 
-  <script>
-    // Ensure history data is safely parsed
-    const historyData = JSON.parse("{{ history | tojson | safe }}");
+    <nav class="sidebar-nav">
+        <a class="nav-item" href="firewall-dashboard.html">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+                <rect x="1" y="1" width="6" height="6" rx="1"/>
+                <rect x="9" y="1" width="6" height="6" rx="1"/>
+                <rect x="1" y="9" width="6" height="6" rx="1"/>
+                <rect x="9" y="9" width="6" height="6" rx="1"/>
+            </svg>
+            Dashboard
+        </a>
+        <a class="nav-item" href="firewall-newscan.html">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+                <circle cx="8" cy="8" r="6.5"/>
+                <path d="M8 5v3" stroke-linecap="round"/>
+                <circle cx="8" cy="10.5" r="0.75" fill="currentColor" stroke="none"/>
+                <path d="M5.5 8.5l2-2.5 2 2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            New Scan
+        </a>
+        <a class="nav-item active" href="#">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+                <path d="M3 2h7l3 3v9a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z"/>
+                <path d="M10 2v4h4M5 8h6M5 11h4"/>
+            </svg>
+            Past Reports
+        </a>
+        <a class="nav-item" href="#">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+                <circle cx="8" cy="5" r="3"/>
+                <path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/>
+            </svg>
+            Team Credits
+        </a>
+    </nav>
 
-    function loadHistoryReport(index) {
-      const reportDiv = document.getElementById("history-report");
+    <div class="sidebar-footer">
+        <a class="nav-item" href="#">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+                <path d="M6 3H3a1 1 0 00-1 1v9a1 1 0 001 1h10a1 1 0 001-1v-3M9 8h6M12 5l3 3-3 3"/>
+            </svg>
+            Export Global Logs
+        </a>
+    </div>
+</aside>
 
-      // Reset and hide if no selection is made
-      if (index === "" || !historyData[index]) {
-        reportDiv.style.display = "none";
-        return;
-      }
+<div class="main">
 
-      const entry = historyData[index];
-      const report = entry.report;
+    <header class="topbar">
+        <span class="topbar-title">Past Reports</span>
 
-      // Populate the details
-      document.getElementById("history-status").textContent = report.status;
-      document.getElementById("history-status").className =
-        "status-badge status-" + report.status.toLowerCase();
-      document.getElementById("history-risks").textContent = report.total_risks;
+        <div class="topbar-search">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+                <circle cx="6.5" cy="6.5" r="5"/>
+                <line x1="10.5" y1="10.5" x2="14" y2="14"/>
+            </svg>
+            <input type="text" placeholder="Quick audit search…" />
+        </div>
 
-      // Fixed the 'critial' typo and added fallback 0
-      document.getElementById("history-critical").textContent =
-        report.severity_count.critical || 0;
-      document.getElementById("history-high").textContent =
-        report.severity_count.high || 0;
-      document.getElementById("history-medium").textContent =
-        report.severity_count.medium || 0;
-      document.getElementById("history-low").textContent =
-        report.severity_count.low || 0;
+        <div class="topbar-spacer"></div>
 
-      reportDiv.style.display = "block";
-    }
-  </script>
+        <div class="topbar-badges">
+            <button class="compliance-pill-btn">ISO/IEC 27001</button>
+            <button class="compliance-pill-btn">NIST SP 800-41</button>
+        </div>
 
-  {% else %}
-  <div class="empty-state">
-    <p class="subtitle">
-      No previous reports found. Upload a firewall configuration to get started.
-    </p>
-  </div>
-  {% endif %}
+        <div class="topbar-actions">
+            <div class="topbar-icon-btn">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+                    <path d="M8 2a5 5 0 014.9 6l1.6 4H1.5l1.6-4A5 5 0 018 2z"/>
+                    <path d="M6.5 13.5a1.5 1.5 0 003 0"/>
+                </svg>
+            </div>
+            <div class="topbar-icon-btn">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+                    <circle cx="8" cy="8" r="2.5"/>
+                    <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41"/>
+                </svg>
+            </div>
+        </div>
+    </header>
+
+    <main class="pastreports-content">
+
+        <div class="pr-heading">
+            <div class="pr-title">Past Reports</div>
+            <div class="pr-subtitle">Select and review historical audit logs and security posture configurations.</div>
+        </div>
+
+        <div class="pr-select-label">Select a Previous File</div>
+        <div class="pr-select-wrap">
+            <select class="pr-select">
+                <option>config_03_2024.csv</option>
+                <option>university_firewall_v2.csv</option>
+                <option>network_audit_jan2024.csv</option>
+                <option>fw_rules_backup_q4.csv</option>
+            </select>
+            <svg class="pr-select-chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M4 6l4 4 4-4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+
+        <div class="report-card">
+
+            <div class="report-card-header">
+                <span class="rc-filename">config_03_2024.csv</span>
+                <span class="rc-warn-badge">
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 1L1 14h14L8 1z"/>
+            <path d="M8 6v4M8 12v.5"/>
+          </svg>
+          Warning
+        </span>
+                <span class="rc-spacer"></span>
+                <button class="load-dashboard-btn">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <rect x="1" y="1" width="6" height="6" rx="1"/>
+                        <rect x="9" y="1" width="6" height="6" rx="1"/>
+                        <rect x="1" y="9" width="6" height="6" rx="1"/>
+                        <rect x="9" y="9" width="6" height="6" rx="1"/>
+                    </svg>
+                    Load to Dashboard
+                </button>
+            </div>
+
+            <div class="rc-total">Total Risks: 124</div>
+
+            <div class="rc-risk-grid">
+                <div class="rc-risk-cell">
+                    <div class="rc-risk-label lbl-critical">Critical</div>
+                    <div class="rc-risk-val lbl-critical">12</div>
+                </div>
+                <div class="rc-risk-cell">
+                    <div class="rc-risk-label lbl-high">High</div>
+                    <div class="rc-risk-val lbl-high">45</div>
+                </div>
+                <div class="rc-risk-cell">
+                    <div class="rc-risk-label lbl-medium">Medium</div>
+                    <div class="rc-risk-val lbl-medium">58</div>
+                </div>
+                <div class="rc-risk-cell">
+                    <div class="rc-risk-label lbl-low">Low</div>
+                    <div class="rc-risk-val lbl-low">9</div>
+                </div>
+            </div>
+
+            <div class="rc-summary-bar">
+                <div class="rc-summary-item">
+                    <div class="rc-summary-accent" style="background:var(--low);"></div>
+                    <div class="rc-summary-info">
+                        <span class="rc-summary-lbl">Rules Kept</span>
+                        <span class="rc-summary-num">84</span>
+                    </div>
+                </div>
+                <div class="rc-summary-item">
+                    <div class="rc-summary-accent" style="background:var(--critical);"></div>
+                    <div class="rc-summary-info">
+                        <span class="rc-summary-lbl">Rules Removed</span>
+                        <span class="rc-summary-num">32</span>
+                    </div>
+                </div>
+                <div class="rc-summary-item">
+                    <div class="rc-summary-accent" style="background:var(--high);"></div>
+                    <div class="rc-summary-info">
+                        <span class="rc-summary-lbl">Pending Review</span>
+                        <span class="rc-summary-num">8</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rc-actions-section">
+                <div class="rc-actions-label">
+                    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M2 8h9M8 5l4 3-4 3"/>
+                        <path d="M13 4v8"/>
+                    </svg>
+                    Rules That Required Action
+                </div>
+                <div class="rc-rules-list">
+                    <div class="rc-rule-row">
+                        <span class="rc-rule-id">FW-RULE-2049_ANY_TCP_80</span>
+                        <span class="rc-status-badge rcb-removed">Removed</span>
+                    </div>
+                    <div class="rc-rule-row">
+                        <span class="rc-rule-id">FW-RULE-9912_TRUST_TO_DMZ_UDP</span>
+                        <span class="rc-status-badge rcb-kept">Kept</span>
+                    </div>
+                    <div class="rc-rule-row">
+                        <span class="rc-rule-id">FW-RULE-4410_MGMT_SSH_SOURCE_LIMIT</span>
+                        <span class="rc-status-badge rcb-kept">Kept</span>
+                    </div>
+                    <div class="rc-rule-row">
+                        <span class="rc-rule-id">FW-RULE-1004_LEGACY_ERP_OVERRIDE</span>
+                        <span class="rc-status-badge rcb-pending">Pending</span>
+                    </div>
+                    <div class="rc-rule-row">
+                        <span class="rc-rule-id">FW-RULE-0331_OUTBOUND_DNS_OPEN</span>
+                        <span class="rc-status-badge rcb-removed">Removed</span>
+                    </div>
+                    <div class="rc-rule-row">
+                        <span class="rc-rule-id">FW-RULE-7820_ADMIN_PANEL_EXPOSE</span>
+                        <span class="rc-status-badge rcb-removed">Removed</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
 </div>
-{% endblock %}
+
+</body>
+</html>
