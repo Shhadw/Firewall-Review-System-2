@@ -1,28 +1,168 @@
-{% extends 'index.html' %}
-{% block title %}New Scan - Firewall Reviews{% endblock %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1280" />
+    <title>FirewallReviews – New Scan</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="upload.css" />
+</head>
+<body>
 
-{% block content %}
-<div class="card">
-  <h2>Upload Firewall Rules</h2>
-  <p class="subtitle">Upload your configuration CSV to begin analysis.</p>
-
-  <form id="uploadForm">
-    <div class="upload-area" id="dropZone">
-      <input type="file" id="csvFile" accept=".csv" required />
-      <label for="csvFile" class="file-label">
-        <div class="upload-icon">📁</div>
-        <p id="fileName"><strong>Choose a file</strong> or drag it here</p>
-        <span>Supported format: .CSV</span>
-      </label>
+<!-- SIDEBAR -->
+<aside class="sidebar">
+    <div class="sidebar-brand">
+        <div class="brand-name">Firewall Reviews</div>
+        <div class="brand-sub">Information Security Tools</div>
     </div>
 
-    <button type="submit" id="uploadBtn">Analyze Rules</button>
-  </form>
+    <nav class="sidebar-nav">
+        <a class="nav-item" href="firewall-dashboard.html">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+                <rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/>
+                <rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/>
+            </svg>
+            Dashboard
+        </a>
+        <a class="nav-item active" href="#">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+                <circle cx="8" cy="8" r="6.5"/>
+                <path d="M8 5v3" stroke-linecap="round"/>
+                <circle cx="8" cy="10.5" r="0.75" fill="currentColor" stroke="none"/>
+                <path d="M5.5 8.5l2-2.5 2 2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            New Scan
+        </a>
+        <a class="nav-item" href="#">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+                <path d="M2 4h12M2 8h10M2 12h7"/>
+            </svg>
+            Past Reports
+        </a>
+        <a class="nav-item" href="#">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+                <circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/>
+            </svg>
+            Team Credits
+        </a>
+    </nav>
 
-  <div id="status" class="status-box hidden">
-    <p id="statusMessage"></p>
-  </div>
-</div>
+    <div class="sidebar-footer">
+        <a class="nav-item" href="#" style="padding:8px 0; font-size:11px;">
+            <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+                <path d="M6 3H3a1 1 0 00-1 1v9a1 1 0 001 1h10a1 1 0 001-1v-3M9 8h6M12 5l3 3-3 3"/>
+            </svg>
+            Export Global Logs
+        </a>
+    </div>
+</aside>
 
-<script src="{{ url_for('static', filename='js/uploadScript.js') }}"></script>
-{% endblock %}
+<!-- MAIN -->
+<div class="main">
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+
+        <!-- Breadcrumb -->
+        <div class="topbar-breadcrumb">
+            <span class="bc-current">New Scan</span>
+        </div>
+
+        <div class="topbar-spacer"></div>
+
+        <!-- Compliance pill -->
+        <div class="topbar-badges" style="display: flex; gap: 10px;">
+            <div class="topbar-compliance-pill">
+                <span>Compliance:</span>
+                <span class="pill-label">ISO/IEC 27001</span>
+            </div>
+            <div class="topbar-compliance-pill">
+                <span>Compliance:</span>
+                <span class="pill-label">NIST SP 800-41</span>
+            </div>
+        </div>
+
+        <!-- Icons + avatar -->
+        <div class="topbar-actions">
+            <div class="topbar-icon-btn">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+                    <path d="M8 2a5 5 0 014.9 6l1.6 4H1.5l1.6-4A5 5 0 018 2z"/>
+                    <path d="M6.5 13.5a1.5 1.5 0 003 0"/>
+                </svg>
+            </div>
+            <div class="topbar-icon-btn">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+                    <circle cx="8" cy="8" r="6"/>
+                    <path d="M6 6a2 2 0 114 0c0 1.5-2 2-2 3.5M8 12.5v.5"/>
+                </svg>
+            </div>
+        </div>
+    </header>
+
+    <!-- NEW SCAN CONTENT -->
+    <main class="newscan-content">
+
+        <div class="newscan-card">
+
+            <!-- Heading -->
+            <div class="newscan-heading">
+                <div class="newscan-title">Upload Firewall Rules</div>
+                <div class="newscan-subtitle">Upload your network firewall configuration CSV to begin analysis.</div>
+            </div>
+
+            <!-- Drop Zone -->
+            <div class="dropzone">
+                <div class="dropzone-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                </div>
+                <div class="dropzone-text">Drop your firewall CSV here or click to browse</div>
+                <div class="dropzone-format">Supported Format: .CSV</div>
+            </div>
+
+            <!-- Required Column Mapping -->
+            <div class="colmap-block">
+                <div class="colmap-label">Required Column Mapping</div>
+                <div class="colmap-tags">
+                    <span class="coltag">order</span>
+                    <span class="coltag">protocol</span>
+                    <span class="coltag">src_ip</span>
+                    <span class="coltag">src_port</span>
+                    <span class="coltag">dst_ip</span>
+                    <span class="coltag">dst_port</span>
+                    <span class="coltag">action</span>
+                    <span class="coltag">hit_count</span>
+                </div>
+            </div>
+
+            <!-- Info Bar -->
+            <div class="info-bar">
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <circle cx="8" cy="8" r="6.5"/>
+                    <path d="M8 7v4M8 5.5v.5" stroke-linecap="round"/>
+                </svg>
+                Ready for audit. Ensure all private IP ranges are correctly formatted.
+            </div>
+
+            <!-- Analyze Button -->
+            <button class="analyze-btn">
+                <span class="btn-arrow">→</span>
+                Analyze Rules
+            </button>
+
+            <!-- Footer Meta -->
+            <div class="newscan-meta">
+                <span class="meta-token">Security Token: <span class="val-valid">Valid</span></span>
+                <span class="meta-session">Session: <span class="val-time">04:29:12</span> Remaining</span>
+            </div>
+
+        </div><!-- end newscan-card -->
+
+    </main>
+</div><!-- end main -->
+
+</body>
+</html>
