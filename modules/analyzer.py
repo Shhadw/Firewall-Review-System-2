@@ -1,58 +1,191 @@
-INSECURE_PORTS = {
-    21: "FTP (Transmits passwords in plain text)",
-    23: "Telnet (Unencrypted communication)",
-    80: "HTTP (Unencrypted web traffic)",
-    445: "SMB (Highly vulnerable to ransomware attacks)"
-}
+# modules/analyzer.py
 
-def analyze_rules(rules_list):
+# ==========================================
+# 1. NIST SP 800-41 & ISO CRYPTOGRAPHY: DANGEROUS PORTS
+# ==========================================
+def catch_dangerous_ports_and_crypto(rule):
+    """
+    FRAMEWORK: NIST SP 800-41 Rev. 1 & ISO 27001 (A.10.1.1 / A.13.2.1)
+    TARGET: The most exhaustive list of insecure, unencrypted, and highly targeted remote management ports.
+    """
+    dst_port = str(rule.get('dst_port', '')).strip()
+    action = str(rule.get('action', '')).strip().lower()
+
+    # If the firewall is already dropping it, it's safe!
+    if action not in ['allow', 'accept', 'permit']:
+        return None 
+
     findings = []
-    findings += check_open_ports(rules_list)
-    findings += check_overly_permissive(rules_list)
-    return findings
 
-def check_open_ports(rules):
-    port_findings = []
-    for rule in rules:
-        action = rule.get("action", "")
-        # FIX: Changed 'port' to 'dst_port' to match reader.py
-        port = rule.get("dst_port")
-        protocol = rule.get("protocol", "")
-        rule_id = rule.get("order") or "Unknown"
+    # 1. Cleartext / Unencrypted Protocols (High Risk of Sniffing)
+    if dst_port in ['20', '21']:
+        findings.append({"severity": "Medium", "tag": "NIST 800-41", "desc": "FTP transmits in cleartext. Use SFTP."})
+        findings.append({"severity": "Medium", "tag": "ISO 27001: A.10.1.1", "desc": "Lack of cryptographic controls for data transit."})
+    elif dst_port == '23':
+        findings.append({"severity": "High", "tag": "NIST 800-41", "desc": "Telnet transmits passwords in cleartext. Strictly prohibited."})
+        findings.append({"severity": "High", "tag": "ISO 27001: A.10.1.1", "desc": "Violation of cryptographic policy for administrative access."})
+    elif dst_port == '80':
+        findings.append({"severity": "Low", "tag": "NIST 800-41", "desc": "HTTP is unencrypted. Enforce HTTPS (443)."})
+    elif dst_port in ['110', '143']:
+        findings.append({"severity": "Medium", "tag": "NIST 800-41", "desc": "POP3/IMAP email transmits in cleartext. Use secure IMAPS/POP3S."})
+    elif dst_port in ['161', '162']:
+        findings.append({"severity": "High", "tag": "NIST 800-41", "desc": "SNMPv1/v2c uses cleartext community strings. Upgrade to SNMPv3."})
+    elif dst_port == '389':
+        findings.append({"severity": "High", "tag": "NIST 800-41", "desc": "LDAP transmits directory credentials in cleartext. Use LDAPS (636)."})
+    elif dst_port in ['512', '513', '514']:
+        findings.append({"severity": "Critical", "tag": "NIST 800-41", "desc": "Legacy rsh/rlogin/rexec protocols are fundamentally insecure."})
+    
+    # 2. Remote Access / Desktop Protocols (Ransomware Targets)
+    elif dst_port == '3389':
+        findings.append({"severity": "Critical", "tag": "NIST 800-41", "desc": "RDP is highly targeted by ransomware. Place behind a VPN with MFA."})
+    elif dst_port in ['5900', '5901']:
+        findings.append({"severity": "Critical", "tag": "NIST 800-41", "desc": "VNC remote access is highly vulnerable if exposed to untrusted networks."})
+    elif dst_port in ['6000', '6001']:
+        findings.append({"severity": "High", "tag": "NIST 800-41", "desc": "X11 window system lacks encryption and is vulnerable to session hijacking."})
 
-        # ISO/NIST Standard: Only flag TCP protocols for these unencrypted services
-        if action in ["ALLOW", "ACCEPT"] and port is not None:
-            if protocol == "tcp" and port in INSECURE_PORTS:
-                port_findings.append({
-                    "rule_id": rule_id,
-                    "severity": "High",
-                    "issue": "Insecure Port Allowed",
-                    "message": f"Port {port} ({INSECURE_PORTS[port]}) is permitted over TCP."
-                })
-    return port_findings
+    # 3. File Sharing & Internal RPC (Worm Propagation Vectors)
+    elif dst_port in ['135', '137', '138', '139', '445']:
+        findings.append({"severity": "Critical", "tag": "NIST 800-41", "desc": "NetBIOS/SMB should NEVER cross a firewall boundary. High risk of worm propagation."})
+    elif dst_port == '111':
+        findings.append({"severity": "High", "tag": "NIST 800-41", "desc": "RPC portmapper is frequently exploited for DDoS amplification or enumeration."})
+    elif dst_port == '69':
+        findings.append({"severity": "Medium", "tag": "NIST 800-41", "desc": "TFTP has no authentication. Unsafe for cross-zone transfers."})
 
-def check_overly_permissive(rules):
-    permissive_findings = []
-    for rule in rules:
-        action = rule.get("action", "")
-        src = rule.get("src_ip", "").lower()
-        dst = rule.get("dst_ip", "").lower()
-        rule_id = rule.get("order") or "Unknown"
+    # 4. Modern DevOps & Cloud Vulnerabilities (The "Silent" Killers)
+    elif dst_port == '2375':
+        findings.append({"severity": "Critical", "tag": "NIST 800-41", "desc": "Unencrypted Docker API exposed. Allows full container takeover."})
+    elif dst_port == '6379':
+        findings.append({"severity": "Critical", "tag": "NIST 800-41", "desc": "Redis lacks default authentication. High risk of data wipe/crypto-mining."})
+    elif dst_port == '9200':
+        findings.append({"severity": "Critical", "tag": "NIST 800-41", "desc": "Elasticsearch API exposed. High risk of massive data exfiltration."})
+    elif dst_port == '11211':
+        findings.append({"severity": "High", "tag": "NIST 800-41", "desc": "Memcached exposed. Highly vulnerable to UDP DDoS amplification attacks."})
 
-        if action in ["ALLOW", "ACCEPT"]:
-            # NIST Principle: Principle of Least Privilege violations
-            if src == "any" and dst == "any":
-                permissive_findings.append({
-                    "rule_id": rule_id,
-                    "severity": "High",
-                    "issue": "Overly Permissive Rule",
-                    "message": "Critical: Any-to-Any traffic provides no perimeter defense."
-                })
-            elif src == "any":
-                permissive_findings.append({
-                    "rule_id": rule_id,
-                    "severity": "Medium",
-                    "issue": "Wide Source Exposure",
-                    "message": "Public access allowed; violates Least Privilege."
-                })
-    return permissive_findings
+    # 5. Direct Database Exposures
+    elif dst_port in ['1433', '1434', '3306', '5432', '1521', '27017']:
+        findings.append({"severity": "Critical", "tag": "NIST 800-41", "desc": f"Database port {dst_port} should never be reachable directly via the firewall."})
+        findings.append({"severity": "Critical", "tag": "ISO 27001: A.13.2.1", "desc": "Information transfer policy violation. Databases must reside in secure isolated zones."})
+
+    # 6. Miscellaneous Infrastructure Risks
+    elif dst_port == '53' and str(rule.get('protocol', '')).strip().upper() == 'TCP':
+        findings.append({"severity": "Low", "tag": "NIST 800-41", "desc": "DNS over TCP allows zone transfers. Restrict to authorized secondary servers."})
+    elif dst_port == '5060':
+        findings.append({"severity": "Medium", "tag": "NIST 800-41", "desc": "SIP (VoIP) is unencrypted. Vulnerable to toll fraud and eavesdropping."})
+    elif dst_port in ['6667', '6668', '6669']:
+        findings.append({"severity": "High", "tag": "NIST 800-41", "desc": "IRC ports are frequently used for Botnet Command & Control (C2) traffic."})
+
+    return findings if findings else None
+
+
+# ==========================================
+# 2. ISO/IEC 27001: COMPREHENSIVE NETWORK CONTROLS
+# ==========================================
+
+def catch_iso_shadow_rules(rule):
+    """
+    FRAMEWORK: ISO 27001 Annex A.12.1.1 (Documented Operating Procedures)
+    TARGET: Identifies orphaned rules causing router bloat.
+    CONSTRAINT: Ignores rules where source port is 'Any' (ephemeral ports).
+    """
+    try:
+        hits = int(rule.get('hit_count', 1)) 
+    except ValueError:
+        hits = 1
+
+    src_port = str(rule.get('src_port', '')).strip().lower()
+
+    # TASK COMPLETED: Ensure you ignore src_port == Any
+    if src_port in ['any', 'all', '0.0.0.0/0']:
+        return None 
+
+    # TASK COMPLETED: Check if hit count == 0 and flag as a "Shadow Rule"
+    if hits == 0:
+        return [{"severity": "Low", "tag": "ISO 27001: A.12.1.1", "desc": "Shadow Rule: 0 hits detected. Demonstrates lack of rule lifecycle maintenance."}]
+    
+    return None
+
+
+def catch_iso_lazy_access(rule):
+    """
+    FRAMEWORK: ISO 27001 Annex A.9.1.2 (Access to Networks)
+    TARGET: Flags 'Any-to-Any' rules that violate explicit access control policies.
+    """
+    src_ip = str(rule.get('src_ip', '')).strip().lower()
+    dst_ip = str(rule.get('dst_ip', '')).strip().lower()
+    action = str(rule.get('action', '')).strip().lower()
+    
+    if src_ip in ['any', '0.0.0.0/0'] and dst_ip in ['any', '0.0.0.0/0'] and action in ['allow', 'accept', 'permit']:
+        return [{"severity": "High", "tag": "ISO 27001: A.9.1.2", "desc": "Permissive 'Any-to-Any' access detected. Access must be explicitly granted based on business need."}]
+    return None
+
+
+def catch_iso_missing_logs(rule):
+    """
+    FRAMEWORK: ISO 27001 Annex A.12.4.1 (Event Logging)
+    TARGET: Ensures that critical traffic is being actively audited/logged.
+    """
+    action = str(rule.get('action', '')).strip().lower()
+    
+    if 'log' not in action and action in ['allow', 'accept', 'permit']:
+        return [{"severity": "Low", "tag": "ISO 27001: A.12.4.1", "desc": "Allowed traffic lacks explicit logging command. Audit trails are required for security events."}]
+    return None
+
+
+def catch_iso_any_source_admin(rule):
+    """
+    FRAMEWORK: ISO 27001 Annex A.13.1.1 (Network Controls)
+    TARGET: Flags rules allowing the entire internet to hit management ports.
+    """
+    dst_port = str(rule.get('dst_port', '')).strip()
+    src_ip = str(rule.get('src_ip', '')).strip().lower()
+    action = str(rule.get('action', '')).strip().lower()
+
+    if action in ['allow', 'accept', 'permit'] and src_ip in ['any', '0.0.0.0/0']:
+        if dst_port in ['22', '3389', '443']:
+            return [{"severity": "Critical", "tag": "ISO 27001: A.13.1.1", "desc": f"Management port {dst_port} is exposed to 'Any' source. Requires strict IP whitelisting or VPN."}]
+    return None
+
+
+# ==========================================
+# THE MASTER ENGINE
+# ==========================================
+
+SECURITY_CHECKS = [
+    catch_dangerous_ports_and_crypto,
+    catch_iso_shadow_rules,
+    catch_iso_lazy_access,
+    catch_iso_missing_logs,
+    catch_iso_any_source_admin
+]
+
+def analyze_rule(rule):
+    """
+    Passes a single firewall rule dictionary through all security checks.
+    """
+    findings = []
+    highest_severity = "OK" 
+    
+    # Loop the rule through every function
+    for check_function in SECURITY_CHECKS:
+        result_list = check_function(rule) 
+        
+        if result_list:
+            for result in result_list:
+                findings.append(result)
+                
+                # Determine the overall severity badge for the UI
+                sev = result["severity"]
+                if sev == "Critical":
+                    highest_severity = "CRITICAL"
+                elif sev == "High" and highest_severity != "CRITICAL":
+                    highest_severity = "HIGH"
+                elif sev == "Medium" and highest_severity not in ["CRITICAL", "HIGH"]:
+                    highest_severity = "MEDIUM"
+                elif sev == "Low" and highest_severity == "OK":
+                    highest_severity = "LOW"
+
+    # Attach the final data back to the rule dictionary
+    rule['findings'] = findings
+    rule['status'] = highest_severity
+    
+    return rule
