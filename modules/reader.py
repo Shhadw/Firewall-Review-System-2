@@ -1,117 +1,149 @@
 # reader.py
 import csv
 import io
+import re
 
 # ---------------------------------------------------------------------------
 # Column definitions
 # ---------------------------------------------------------------------------
-# Core columns every valid firewall CSV must have.
-REQUIRED_COLUMNS = {
+# Core columns every valid firewall rule CSV must have.
+RULE_REQUIRED_COLUMNS = {
     "order", "protocol",
     "src_ip", "src_port",
     "dst_ip", "dst_port",
-    "action",
+}
+
+# Firewall log columns required for audit mapping.
+LOG_REQUIRED_COLUMNS = {
+    "date", "time", "action", "protocol",
+    "src-ip", "src-port", "dst-ip", "dst-port",
 }
 
 # Optional columns we capture when present; downstream modules should
 # treat a None value here as "not provided / unknown".
-OPTIONAL_COLUMNS = {"hit_count"}
+OPTIONAL_COLUMNS = {"action", "hit_count"}
 
 # File extensions we accept.  Anything else is rejected before we even
 # try to parse bytes, so the app never crashes on a stray .pdf or .exe.
-ALLOWED_EXTENSIONS = {".csv", ".txt"}
+ALLOWED_EXTENSIONS = {".csv", ".txt", ".log"}
 
 
-def process_csv(file, filename: str = ""):
+def _normalize_column_name(col):
+    """
+    Normalize column names to handle variations like:
+    - "date and time" vs "date & time" vs "dateandtime"
+    - "event id" vs "event_id" vs "eventid"
+    - "task category" vs "task_category" vs "taskcategory"
+    """
+    # Convert to lowercase and strip
+    normalized = str(col).strip().lower()
+    # Replace common separators and abbreviations
+    normalized = normalized.replace('&', 'and')      # "date & time" -> "date and time"
+    normalized = re.sub(r'[_\-/]', ' ', normalized)  # underscores/dashes/slashes -> space
+    # Collapse multiple spaces into single space
+    normalized = re.sub(r'\s+', ' ', normalized)
+    return normalized
+
+
+def _find_matching_column(col_name, available_columns):
+    """
+    Find a column that matches the given name, accounting for common variations.
+    Returns the original column name if found, or None if not found.
+    """
+    normalized_target = _normalize_column_name(col_name)
+    for available_col in available_columns:
+        if _normalize_column_name(available_col) == normalized_target:
+            return available_col
+    return None
+
+
+def _validate_headers(reader, required_columns, file_type="CSV"):
+    if reader.fieldnames is None:
+        raise ValueError(f"{file_type} has no headers.")
+
+    # Normalize all column names
+    normalized_fields = [_normalize_column_name(col) for col in reader.fieldnames]
+    present_columns = set(normalized_fields)
+    
+    # Also normalize required columns
+    normalized_required = {_normalize_column_name(col) for col in required_columns}
+    
+    # Special handling: treat "desc" and "description" as equivalent for logs
+    if "desc" in normalized_required and "description" in present_columns:
+        present_columns.discard("description")
+        present_columns.add("desc")
+        # Update normalized_fields to replace "description" with "desc"
+        normalized_fields = ["desc" if f == "description" else f for f in normalized_fields]
+    
+    missing = normalized_required - present_columns
+    if missing:
+        # More detailed error message showing what we found vs what we expected
+        raise ValueError(
+            f"{file_type} is missing required columns: {sorted(missing)}\n"
+            f"Found columns: {sorted(present_columns)}\n"
+            f"Expected columns: {sorted(normalized_required)}"
+        )
+    
+    # Update reader.fieldnames to use normalized names so DictReader works correctly
+    reader.fieldnames = normalized_fields
+    return present_columns
+
+
+def process_rules_csv(file, filename: str = ""):
     """
     Validate, read, and parse a firewall-rule CSV upload.
-
-    Parameters
-    ----------
-    file     : file-like object with a .read() method (e.g. Flask's request.files entry)
-    filename : original filename from the upload (used for extension check)
-
-    Returns
-    -------
-    list[dict]  – one dict per rule row, ready for the analyzer module.
-
-    Raises
-    ------
-    ValueError  – on any problem the caller should surface to the user.
     """
-
-    # ------------------------------------------------------------------
-    # 1. File-type guard  (Revision 1)
-    #    Reject unsupported extensions immediately so we never crash
-    #    trying to decode a binary file as UTF-8 text.
-    # ------------------------------------------------------------------
     if filename:
         ext = "." + filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
         if ext not in ALLOWED_EXTENSIONS:
             raise ValueError(
-                f"Unsupported file type '{ext}'. "
-                f"Please upload a CSV file (.csv or .txt)."
+                f"Unsupported file type '{ext}'. Please upload a CSV file (.csv or .txt)."
             )
 
-    # ------------------------------------------------------------------
-    # 2. Read raw bytes
-    # ------------------------------------------------------------------
     raw = file.read()
     if not raw:
         raise ValueError("Uploaded file is empty.")
 
-    # ------------------------------------------------------------------
-    # 3. Decode — try UTF-8 first, fall back to Latin-1
-    # ------------------------------------------------------------------
     try:
         text = raw.decode("utf-8")
     except UnicodeDecodeError:
         text = raw.decode("latin-1")
 
-    # ------------------------------------------------------------------
-    # 4. Parse headers
-    # ------------------------------------------------------------------
-    reader = csv.DictReader(io.StringIO(text))
+    # Remove BOM if present
+    if text.startswith('\ufeff'):
+        text = text[1:]
 
-    if reader.fieldnames is None:
-        raise ValueError("CSV has no headers.")
+    # Try to detect delimiter
+    sample_line = text.split('\n')[0] if text else ""
+    if '\t' in sample_line and ',' not in sample_line:
+        delimiter = '\t'
+    else:
+        delimiter = ','
 
-    # Normalise: strip surrounding whitespace, lowercase
-    reader.fieldnames = [str(col).strip().lower() for col in reader.fieldnames]
-    present_columns = set(reader.fieldnames)
-
-    # ------------------------------------------------------------------
-    # 5. Validate required columns
-    # ------------------------------------------------------------------
-    missing = REQUIRED_COLUMNS - present_columns
-    if missing:
-        raise ValueError(
-            f"CSV is missing required columns: {sorted(missing)}"
-        )
-
-    # Detect whether the optional hit_count column was supplied
+    reader = csv.DictReader(io.StringIO(text), delimiter=delimiter)
+    present_columns = _validate_headers(reader, RULE_REQUIRED_COLUMNS, "Firewall rules CSV")
     has_hit_count = "hit_count" in present_columns
 
-    # ------------------------------------------------------------------
-    # 6. Parse rows into dicts  (Revisions 2 & 3)
-    # ------------------------------------------------------------------
     rules = []
     for row in reader:
-        # Skip blank / all-whitespace rows
         if not any(str(v).strip() for v in row.values()):
             continue
+        
+        # Normalize row keys to match normalized fieldnames from _validate_headers
+        normalized_row = {}
+        for key, value in row.items():
+            norm_key = _normalize_column_name(key) if key else key
+            normalized_row[norm_key] = value
 
         rule = {
-            "order":     _safe_int(row.get("order")),
-            "protocol":  _clean_str(row.get("protocol")).lower(),
-            "src_ip":    _clean_str(row.get("src_ip")).lower(),
-            "src_port":  _safe_val(row.get("src_port")),
-            "dst_ip":    _clean_str(row.get("dst_ip")).lower(),
-            "dst_port":  _safe_val(row.get("dst_port")),
-            "action":    _clean_str(row.get("action")).upper(),
-            # hit_count: integer when present, None when column is absent,
-            # 0 when the cell exists but is empty — all safe for the analyzer.
-            "hit_count": _safe_int(row.get("hit_count")) if has_hit_count else None,
+            "order":     _safe_int(normalized_row.get("order")),
+            "protocol":  _clean_str(normalized_row.get("protocol")).lower(),
+            "src_ip":    _clean_str(normalized_row.get("src ip")).lower(),
+            "src_port":  _safe_val(normalized_row.get("src port")),
+            "dst_ip":    _clean_str(normalized_row.get("dst ip")).lower(),
+            "dst_port":  _safe_val(normalized_row.get("dst port")),
+            "action":    _clean_str(normalized_row.get("action")).upper() if normalized_row.get("action") is not None else "",
+            "hit_count": _safe_int(normalized_row.get("hit count")) if has_hit_count else None,
         }
         rules.append(rule)
 
@@ -119,6 +151,153 @@ def process_csv(file, filename: str = ""):
         raise ValueError("No rule data found in CSV.")
 
     return rules
+
+
+def process_logs_csv(file, filename: str = ""):
+    """
+    Validate, read, and parse firewall logs (CSV or space-separated .log format).
+    Detects file type and calls appropriate parser.
+    """
+    if filename:
+        ext = "." + filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+        if ext not in ALLOWED_EXTENSIONS:
+            raise ValueError(
+                f"Unsupported file type '{ext}'. Please upload a log file (.log, .csv, or .txt)."
+            )
+        # Route to appropriate parser
+        if ext == ".log":
+            return process_logs_log(file, filename)
+    
+    # Default: treat as CSV
+    return process_logs_csv_internal(file, filename)
+
+
+def process_logs_log(file, filename: str = ""):
+    """
+    Validate, read, and parse firewall log files in space-separated format.
+    Expected format: date time action protocol src-ip src-port dst-ip dst-port size tcpflags tcpsyn tcpack tcpwin icmptype icmpcode info path
+    """
+    raw = file.read()
+    if not raw:
+        raise ValueError("Uploaded log file is empty.")
+
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError:
+        text = raw.decode("latin-1")
+
+    # Remove BOM if present
+    if text.startswith('\ufeff'):
+        text = text[1:]
+
+    lines = text.strip().split('\n')
+    if not lines:
+        raise ValueError("Log file is empty.")
+
+    # Parse header (first line)
+    header_line = lines[0].strip()
+    headers = header_line.split()
+    
+    # Normalize header names for easier matching
+    normalized_headers = [_normalize_column_name(h) for h in headers]
+    
+    # Validate required columns
+    required_normalized = {_normalize_column_name(col) for col in LOG_REQUIRED_COLUMNS}
+    present_columns = set(normalized_headers)
+    
+    missing = required_normalized - present_columns
+    if missing:
+        raise ValueError(
+            f"Log file is missing required columns: {sorted(missing)}\n"
+            f"Found columns: {sorted(present_columns)}\n"
+            f"Expected columns: {sorted(required_normalized)}"
+        )
+
+    # Parse data lines
+    logs = []
+    for line_num, line in enumerate(lines[1:], start=2):
+        line = line.strip()
+        if not line or line.startswith('#'):
+            continue
+        
+        values = line.split()
+        
+        # Handle lines with fewer values than headers (incomplete entries)
+        if len(values) < len(headers):
+            # Pad with empty strings
+            values.extend([''] * (len(headers) - len(values)))
+        elif len(values) > len(headers):
+            # Join excess values into the last field (for "info" or "path" fields with spaces)
+            values = values[:len(headers) - 1] + [' '.join(values[len(headers) - 1:])]
+        
+        # Create log entry with original header names as keys
+        log_entry = {}
+        for i, header in enumerate(headers):
+            norm_header = _normalize_column_name(header)
+            log_entry[norm_header] = _clean_str(values[i]) if i < len(values) else ""
+        
+        # Only add non-empty entries
+        if any(log_entry.values()):
+            logs.append(log_entry)
+    
+    if not logs:
+        raise ValueError("No log data found in file.")
+
+    return logs
+
+
+def process_logs_csv_internal(file, filename: str = ""):
+    """
+    Validate, read, and parse firewall log CSV files (legacy support).
+    """
+    raw = file.read()
+    if not raw:
+        raise ValueError("Uploaded log file is empty.")
+
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError:
+        text = raw.decode("latin-1")
+
+    # Remove BOM if present
+    if text.startswith('\ufeff'):
+        text = text[1:]
+
+    # Try to detect delimiter
+    sample_line = text.split('\n')[0] if text else ""
+    if '\t' in sample_line and ',' not in sample_line:
+        delimiter = '\t'
+    else:
+        delimiter = ','
+
+    reader = csv.DictReader(io.StringIO(text), delimiter=delimiter)
+    present_columns = _validate_headers(reader, LOG_REQUIRED_COLUMNS, "Firewall logs CSV")
+
+    logs = []
+    for row in reader:
+        if not any(str(v).strip() for v in row.values()):
+            continue
+        
+        # Normalize keys to match fieldnames from _validate_headers
+        log_entry = {}
+        for key, value in row.items():
+            norm_key = _normalize_column_name(key) if key else key
+            # _validate_headers already maps "description" to "desc", but be explicit
+            if norm_key == "description":
+                norm_key = "desc"
+            log_entry[norm_key] = _clean_str(value)
+        
+        logs.append(log_entry)
+
+    if not logs:
+        raise ValueError("No log data found in CSV.")
+
+    return logs
+
+
+def process_csv(file, filename: str = ""):
+    """Backward-compatible alias for rule processing."""
+    return process_rules_csv(file, filename)
 
 
 # ---------------------------------------------------------------------------

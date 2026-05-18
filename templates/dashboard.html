@@ -45,7 +45,13 @@
         </div>
     </header>
 
-    <main class="content">
+    <main class="content" id="ui-dashboard-content">
+        <div id="ui-empty-state" class="empty-state" style="display:none; padding: 80px 24px; text-align:center; color: var(--muted);">
+            <h2 style="margin-bottom: 12px; color: var(--light);">No Rule Scan Available</h2>
+            <p style="margin-bottom: 24px; max-width: 520px; margin-left: auto; margin-right: auto;">Upload a firewall rules CSV from the New Scan page to populate the Rule Audit Queue and view compliance findings.</p>
+            <a href="{{ url_for('upload') }}" class="primary-btn" style="padding: 14px 24px; background: var(--accent); color: #111; border-radius: 8px; text-decoration:none;">Go to Scan Upload</a>
+        </div>
+
         <div class="stat-row">
             <div class="stat-card">
                 <div class="stat-label">Total Evaluated</div>
@@ -72,22 +78,31 @@
         <div class="mid-row">
             <div class="danger-card" id="ui-danger-card" style="display: none;">
                 <div class="danger-header">
-                    <span class="danger-badge">Danger</span>
+                    <span class="danger-badge" id="ui-status-badge">Danger</span>
                     <span class="danger-filename" id="ui-filename">--</span>
                 </div>
                 <div class="danger-body">
                     <div>
                         <div class="issues-label">Common Issues</div>
-                        <ul class="issues-list">
+                        <ul class="issues-list" id="ui-common-issues">
                             <li>Excessive 'Any' Source IP permissions</li>
                             <li>Shadowed rules detected</li>
                         </ul>
                     </div>
                 </div>
+                <div class="violation-tags" id="ui-violation-tags" style="margin-top: 16px; display:flex; flex-wrap:wrap; gap:8px;">
+                    <!-- violation tags injected here -->
+                </div>
             </div>
             <div class="progress-card">
                 <div class="progress-card-title">Review Progress</div>
                 <div class="progress-bar-wrap"><div class="progress-bar-fill" id="ui-progress-fill" style="width: 0%;"></div></div>
+                <div class="progress-summary" style="display:grid; grid-template-columns: repeat(2, minmax(120px, 1fr)); gap: 12px; margin-top: 16px; color: var(--light); font-size: 0.95rem;">
+                    <div>Reviewed: <strong id="ui-reviewed-count">0</strong> / <strong id="ui-total-progress">0</strong></div>
+                    <div>Pending: <strong id="ui-pending-count">0</strong></div>
+                    <div>Kept: <strong id="ui-kept-count">0</strong></div>
+                    <div>Removed: <strong id="ui-removed-count">0</strong></div>
+                </div>
                 <button class="export-btn">Export Audit Logs</button>
             </div>
         </div>
@@ -110,6 +125,8 @@
             </div>
         </div>
     </main>
+
+    <div id="ui-global-findings-panel" style="display:none; margin-top: 20px;"></div>
 </div>
 
 <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
