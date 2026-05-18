@@ -9,13 +9,21 @@
   --muted:     #5a7290;
   --accent:    #3b8ef3;
   --accent2:   #1d6ed8;
-  --critical:  #e8404a;
-  --high:      #f0a832;
-  --medium:    #e8b84b;
+
+  --critical:  #b91c1c;
+  --high:      #e8404a;
+  --medium:    #f0a832;
   --low:       #4caf88;
-  --tag-nist:  #4c9ef5;
-  --tag-iso:   #2ea87e;
-  --tag-pci:   #c8622e;
+
+  --tag-nist:    #4c9ef5;
+  --tag-iso:     #2ea87e;
+  --tag-pci:     #c8622e;
+  --tag-cis:     #8b5cf6;
+  --tag-soc2:    #ec4899;
+  --tag-hipaa:   #06b6d4;
+  --tag-cobit:   #f59e0b;
+  --tag-nistcsf: #3b82f6;
+
   --danger-bg: #2a1619;
   --danger-bd: #7a2028;
   --rule-hover:#1a2535;
@@ -41,7 +49,7 @@ body {
   height: 100vh;
   position: sticky;
   top: 0;
-  align-self: flex-start; /* <-- This stops the flex container from stretching the sidebar */
+  align-self: flex-start;
   background: var(--sidebar);
   border-right: 1px solid var(--border);
   display: flex;
@@ -178,8 +186,6 @@ body {
 
 .topbar-spacer { flex: 1; }
 
-/* ── UNIFIED COMPLIANCE PILLS ── */
-/* ── UNIFIED COMPLIANCE PILLS ── */
 .topbar-badges {
   display: flex;
   gap: 10px;
@@ -204,13 +210,8 @@ body {
   white-space: nowrap;
 }
 
-.topbar-compliance-pill span:first-child {
-  color: var(--muted);
-}
-
-.topbar-compliance-pill .pill-label {
-  color: var(--accent);
-}
+.topbar-compliance-pill span:first-child { color: var(--muted); }
+.topbar-compliance-pill .pill-label { color: var(--accent); }
 
 .topbar-compliance-pill:hover,
 .topbar-compliance-pill.active {
@@ -260,8 +261,10 @@ body {
   padding: 14px 16px 12px;
 }
 
-.stat-card.highlight-critical { border-color: var(--critical); background: #180e10; }
-.stat-card.highlight-high     { border-color: var(--high);     background: #1a1508; }
+.stat-card.highlight-critical { border-color: var(--critical); background: #1a0f12; }
+.stat-card.highlight-high     { border-color: var(--high);     background: #1f1214; }
+.stat-card.highlight-medium   { border-color: var(--medium);   background: #1f1a10; }
+.stat-card.highlight-low      { border-color: var(--low);      background: #121c18; }
 
 .stat-label {
   font-size: 9px;
@@ -283,6 +286,7 @@ body {
 .stat-card.highlight-critical .stat-value { color: var(--critical); }
 .stat-card.highlight-high     .stat-value { color: var(--high); }
 .stat-card.highlight-medium   .stat-value { color: var(--medium); }
+.stat-card.highlight-low      .stat-value { color: var(--low); }
 
 .stat-delta {
   font-size: 10px;
@@ -299,9 +303,9 @@ body {
 /* ── TWO-COLUMN MIDDLE ── */
 .mid-row {
   display: grid;
-  grid-template-columns: 1fr 280px;
+  grid-template-columns: 1.4fr 1fr;
   gap: 14px;
-  align-items: start;
+  align-items: stretch;
 }
 
 /* ── DANGER CARD ── */
@@ -401,9 +405,14 @@ body {
   border: 1px solid;
 }
 
-.vtag-nist { background: rgba(76,158,245,0.15); color: var(--tag-nist); border-color: rgba(76,158,245,0.4); }
-.vtag-iso  { background: rgba(46,168,126,0.15); color: var(--tag-iso);  border-color: rgba(46,168,126,0.4); }
-.vtag-pci  { background: rgba(200,98,46,0.15);  color: var(--tag-pci);  border-color: rgba(200,98,46,0.4); }
+.vtag-nist    { background: rgba(76,158,245,0.15); color: var(--tag-nist); border-color: rgba(76,158,245,0.4); }
+.vtag-iso     { background: rgba(46,168,126,0.15); color: var(--tag-iso);  border-color: rgba(46,168,126,0.4); }
+.vtag-pci     { background: rgba(200,98,46,0.15);  color: var(--tag-pci);  border-color: rgba(200,98,46,0.4); }
+.vtag-cis     { background: rgba(139,92,246,0.15); color: var(--tag-cis);  border-color: rgba(139,92,246,0.4); }
+.vtag-soc2    { background: rgba(236,72,153,0.15); color: var(--tag-soc2); border-color: rgba(236,72,153,0.4); }
+.vtag-hipaa   { background: rgba(6,182,212,0.15);  color: var(--tag-hipaa); border-color: rgba(6,182,212,0.4); }
+.vtag-cobit   { background: rgba(245,158,11,0.15); color: var(--tag-cobit); border-color: rgba(245,158,11,0.4); }
+.vtag-nistcsf { background: rgba(59,130,246,0.15); color: var(--tag-nistcsf); border-color: rgba(59,130,246,0.4); }
 
 /* ── PROGRESS CARD ── */
 .progress-card {
@@ -411,6 +420,9 @@ body {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 .progress-card-title {
@@ -848,6 +860,73 @@ body {
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+
+/* ── EMPTY STATE ── */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 70vh;
+    text-align: center;
+    animation: fadeUp 0.6s ease-out both;
+}
+
+.empty-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(59,142,243,0.06);
+    border: 1px dashed rgba(59,142,243,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    margin-bottom: 24px;
+}
+
+.empty-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #e2eaf5;
+    margin-bottom: 12px;
+    letter-spacing: -0.01em;
+}
+
+.empty-desc {
+    font-size: 14px;
+    color: var(--muted);
+    max-width: 420px;
+    line-height: 1.6;
+    margin-bottom: 30px;
+}
+
+.empty-state .cta-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(90deg, #1da0f0 0%, #1cd4e8 100%);
+    border: none;
+    border-radius: 8px;
+    padding: 12px 28px;
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    cursor: pointer;
+    text-decoration: none;
+    transition: filter 0.2s, transform 0.15s;
+}
+
+.empty-state .cta-btn:hover { filter: brightness(1.1); transform: translateY(-2px); }
+.empty-state .cta-btn .cta-arrow { transition: transform 0.2s; }
+.empty-state .cta-btn:hover .cta-arrow { transform: translateX(4px); }
+
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
 
 /* ════════════════════════════════════════
    AURORA BACKGROUND SYSTEM

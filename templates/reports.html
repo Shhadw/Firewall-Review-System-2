@@ -42,9 +42,13 @@
         <span class="topbar-title">Past Reports</span>
         <div class="topbar-spacer"></div>
 
-        <div class="topbar-badges">
-            <div class="topbar-compliance-pill"><span>Compliance:</span><span class="pill-label">ISO/IEC 27001</span></div>
-            <div class="topbar-compliance-pill"><span>Compliance:</span><span class="pill-label">NIST SP 800-41</span></div>
+        <div class="topbar-badges" style="overflow-x: auto; padding-bottom: 2px; scrollbar-width: none;">
+            <div class="topbar-compliance-pill"><span>Compliance:</span><span class="pill-label">ISO 27001</span></div>
+            <div class="topbar-compliance-pill"><span>Compliance:</span><span class="pill-label">NIST 800-41</span></div>
+            <div class="topbar-compliance-pill"><span>Compliance:</span><span class="pill-label">PCI-DSS</span></div>
+            <div class="topbar-compliance-pill"><span>Compliance:</span><span class="pill-label">HIPAA</span></div>
+            <div class="topbar-compliance-pill"><span>Compliance:</span><span class="pill-label">SOC 2</span></div>
+            <div class="topbar-compliance-pill"><span>Compliance:</span><span class="pill-label">CIS Controls</span></div>
         </div>
     </header>
 
@@ -70,7 +74,7 @@
                   Warning
                 </span>
                 <span class="rc-spacer"></span>
-                <button class="load-dashboard-btn">
+                <button class="load-dashboard-btn" id="ui-load-btn">
                     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
                     Load to Dashboard
                 </button>
@@ -134,10 +138,9 @@
 </div>
 
 <script>
-    // This injects the session history directly into the browser memory!
     const RAW_HISTORY_DATA = {{ history | tojson | safe }};
+    const GLOBAL_DECISIONS = {{ decisions | tojson | safe }};
 </script>
-
 <script src="{{ url_for('static', filename='js/reports.js') }}"></script>
 </body>
 </html>

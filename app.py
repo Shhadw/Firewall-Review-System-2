@@ -42,7 +42,8 @@ def simulate_live_traffic(parsed_rules):
 
 @app.route('/')
 def index():
-    return redirect('/dashboard')
+    session.clear()
+    return render_template('homepage.html')
 
 @app.route('/dashboard')
 def dashboard():
@@ -51,7 +52,8 @@ def dashboard():
 @app.route('/reports')
 def reports():
     history = session.get('history', [])
-    return render_template('reports.html', history=history)
+    decisions = session.get('decisions', {})
+    return render_template('reports.html', history=history, decisions=decisions)
 
 @app.route('/credits')
 def credits():
@@ -105,6 +107,10 @@ def upload():
             }
 
             history = session.get('history', [])
+
+            # 🟢 THE FIX: Remove any existing report with the same filename to prevent duplicates!
+            history = [h for h in history if h['filename'] != file.filename]
+
             history_entry = {
                 'filename': file.filename,
                 'summary': summary,
@@ -123,6 +129,7 @@ def get_analysis_results():
     scan_data = session.get('current_scan')
     if not scan_data:
         return jsonify({"error": "No scan data found."}), 404
+    scan_data['decisions'] = session.get('decisions', {})
     return jsonify(scan_data)
 
 @app.route('/decide', methods=['POST'])
@@ -140,6 +147,20 @@ def decide():
     session.modified = True
 
     return jsonify({"status": "ok", "rule_id": rule_id, "decision": decision})
+
+@app.route('/api/load_report', methods=['POST'])
+def load_report():
+    """Swaps the current dashboard scan to a historical report."""
+    data = request.get_json()
+    filename = data.get('filename')
+    history = session.get('history', [])
+
+    for entry in history:
+        if entry['filename'] == filename:
+            session['current_scan'] = entry
+            return jsonify({"status": "success"}), 200
+
+    return jsonify({"error": "Report not found"}), 404
 
 if __name__ == '__main__':
     app.run(debug=True)

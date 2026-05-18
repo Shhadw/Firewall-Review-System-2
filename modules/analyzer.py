@@ -17,6 +17,9 @@ def catch_dangerous_ports_and_crypto(rule):
     elif dst_port == '23':
         findings.append({"severity": "High", "tag": "NIST 800-41", "desc": "Telnet transmits passwords in cleartext. Strictly prohibited."})
         findings.append({"severity": "High", "tag": "ISO 27001: A.10.1.1", "desc": "Violation of cryptographic policy for administrative access."})
+        findings.append({"severity": "High", "tag": "PCI-DSS v4.0", "desc": "Req 4.2.1: Strong cryptography required for transmission."})
+        findings.append({"severity": "High", "tag": "HIPAA", "desc": "§ 164.312(e)(1): Transmission Security violation."})
+        findings.append({"severity": "High", "tag": "CIS Control 3", "desc": "Data Protection: Encrypt sensitive data in transit."})
     elif dst_port == '80':
         findings.append({"severity": "Low", "tag": "NIST 800-41", "desc": "HTTP is unencrypted. Enforce HTTPS (443)."})
     elif dst_port in ['110', '143']:
@@ -55,7 +58,8 @@ def catch_dangerous_ports_and_crypto(rule):
     elif dst_port in ['1433', '1434', '3306', '5432', '1521', '27017']:
         findings.append({"severity": "Critical", "tag": "NIST 800-41", "desc": f"Database port {dst_port} should never be reachable directly via the firewall."})
         findings.append({"severity": "Critical", "tag": "ISO 27001: A.13.2.1", "desc": "Information transfer policy violation. Databases must reside in secure isolated zones."})
-
+        findings.append({"severity": "Critical", "tag": "PCI-DSS v4.0", "desc": "Req 1.3.1: Restrict inbound traffic to the cardholder data environment."})
+        findings.append({"severity": "Critical", "tag": "SOC 2", "desc": "CC6.6: Logical access security boundary failure."})
     elif dst_port == '53' and str(rule.get('protocol', '')).strip().upper() == 'TCP':
         findings.append({"severity": "Low", "tag": "NIST 800-41", "desc": "DNS over TCP allows zone transfers. Restrict to authorized secondary servers."})
     elif dst_port == '5060':
