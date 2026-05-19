@@ -1,23 +1,7 @@
-# Detailed mapping containing unencrypted and dangerous ports with full framework justification descriptions
-INSECURE_PORTS_METADATA = {
-    '20': {"name": "FTP (Data)", "alt": "SFTP", "nist_rationale": "Transmits data across network perimeters in unencrypted plaintext, allowing unauthorized actors to perform network sniffing and packet capture attacks.", "iso_rationale": "Direct breach of cryptographic protection mandates. Explicit transit encryption is required to protect information exchange segments."},
-    '21': {"name": "FTP (Control)", "alt": "SFTP", "nist_rationale": "Exposes cleartext administrative credentials over control streams, facilitating lateral interception and credential harvesting vectors.", "iso_rationale": "Fails secure system architecture guidelines due to missing cryptographic controls for authenticated control traffic."},
-    '23': {"name": "Telnet", "alt": "SSH", "nist_rationale": "Transmits command execution streams and administrative passwords entirely in cleartext, rendering perimeter nodes fully vulnerable to intercept-and-replay attacks.", "iso_rationale": "Direct violation of cryptographic policies governing privileged remote management access utilities."},
-    '80': {"name": "HTTP", "alt": "HTTPS", "nist_rationale": "Lacks logical transit-layer encryption, enabling malicious data manipulation and eavesdropping via Man-in-the-Middle (MitM) positioning.", "iso_rationale": "Bypasses default network communication privacy baselines by failing to enforce web segment authentication mechanisms."},
-    '110': {"name": "POP3", "alt": "POP3S", "nist_rationale": "Broadcasts mail retrieval authentication hashes in plaintext across routing perimeters, exposing executive mail domains to local session stealing.", "iso_rationale": "Breaches secure information transfer baselines by exposing operational messaging assets to plaintext interception."},
-    '143': {"name": "IMAP", "alt": "IMAPS", "nist_rationale": "Transmits message collection transactions over unencrypted cleartext sockets, endangering authentication tokens at network demarcations.", "iso_rationale": "Violates corporate data access privacy rules by failing to utilize encrypted mail synchronization tunnels."},
-    '161': {"name": "SNMPv1/v2c", "alt": "SNMPv3", "vuln": "Uses unencrypted cleartext 'community strings' for management signaling, allowing network context discovery or unauthorized infrastructure alterations."},
-    '162': {"name": "SNMPv1/v2c Trap", "alt": "SNMPv3", "vuln": "Uses unencrypted cleartext 'community strings' for management signaling, allowing network context discovery or unauthorized infrastructure alterations."},
-    '389': {"name": "LDAP", "alt": "LDAPS", "nist_rationale": "Passes directory queries and active directory credentials in raw readable strings, raising cross-zone compromise opportunities.", "iso_rationale": "Directly endangers identity infrastructure security by ignoring encryption requirements for directory services traffic."},
-    '512': {"name": "rsh", "alt": "SSH", "nist_rationale": "Relies on legacy, easily spoofed IP address verification tables rather than authenticated cryptographic handshakes.", "iso_rationale": "Fails to meet identification and authentication controls by using completely unauthenticated legacy protocols."},
-    '513': {"name": "rlogin", "alt": "SSH", "nist_rationale": "Relies on legacy, easily spoofed IP address verification tables rather than authenticated cryptographic handshakes.", "iso_rationale": "Fails to meet identification and authentication controls by using completely unauthenticated legacy protocols."},
-    '514': {"name": "rexec", "alt": "SSH", "nist_rationale": "Relies on legacy, easily spoofed IP address verification tables rather than authenticated cryptographic handshakes.", "iso_rationale": "Fails to meet identification and authentication controls by using completely unauthenticated legacy protocols."}
-}
-
 def catch_dangerous_ports_and_crypto(rule):
     """
     FRAMEWORK: NIST SP 800-41 Rev. 1 & ISO 27001 (A.10.1.1 / A.13.2.1)
-    TARGET: Flags unencrypted legacy protocols that leak information across boundaries.
+    TARGET: The most exhaustive list of insecure, unencrypted, and highly targeted remote management ports.
     """
     dst_port = str(rule.get('dst_port', '')).strip()
     action = str(rule.get('action', '')).strip().lower()
@@ -27,65 +11,62 @@ def catch_dangerous_ports_and_crypto(rule):
 
     findings = []
 
-    # 1. Standard Protocol Auditing with Compliance Narratives
-    if dst_port in INSECURE_PORTS_METADATA:
-        meta = INSECURE_PORTS_METADATA[dst_port]
-        
-        # TASK ACCOMPLISHED: Injecting NIST Framework Tag and explaining the exact violation mechanism
-        findings.append({
-            "severity": "High" if dst_port in ['23', '161', '162', '389'] else ("Critical" if dst_port in ['512', '513', '514'] else "Medium"),
-            "tag": "NIST SP 800-41",
-            "issue": "Insecure Protocol Permitted",
-            "desc": f"Violation: Permitting unencrypted {meta['name']} traffic. Framework Conflict: This breaks standard control rules because it {meta['nist_rationale']} Remediation: Migrate perimeter services exclusively to secure {meta['alt']} configurations."
-        })
-        
-        # TASK ACCOMPLISHED: Injecting ISO Framework Tag and explaining the explicit violation reason
-        findings.append({
-            "severity": "High" if dst_port in ['23', '161', '162', '389'] else ("Critical" if dst_port in ['512', '513', '514'] else "Medium"),
-            "tag": "ISO 27001: A.14.1.2",
-            "issue": "Cryptographic Control Defect",
-            "desc": f"Violation: Transit encryption missing on port {dst_port}. Framework Conflict: This breaches secure engineering requirements because it demonstrates a {meta['iso_rationale']} Encryption blocks must protect sensitive exchange pathways."
-        })
+    if dst_port in ['20', '21']:
+        findings.append({"severity": "Medium", "tag": "NIST 800-41", "desc": "FTP transmits in cleartext. Use SFTP."})
+        findings.append({"severity": "Medium", "tag": "ISO 27001: A.10.1.1", "desc": "Lack of cryptographic controls for data transit."})
+    elif dst_port == '23':
+        findings.append({"severity": "High", "tag": "NIST 800-41", "desc": "Telnet transmits passwords in cleartext. Strictly prohibited."})
+        findings.append({"severity": "High", "tag": "ISO 27001: A.10.1.1", "desc": "Violation of cryptographic policy for administrative access."})
+        findings.append({"severity": "High", "tag": "PCI-DSS v4.0", "desc": "Req 4.2.1: Strong cryptography required for transmission."})
+        findings.append({"severity": "High", "tag": "HIPAA", "desc": "§ 164.312(e)(1): Transmission Security violation."})
+        findings.append({"severity": "High", "tag": "CIS Control 3", "desc": "Data Protection: Encrypt sensitive data in transit."})
+    elif dst_port == '80':
+        findings.append({"severity": "Low", "tag": "NIST 800-41", "desc": "HTTP is unencrypted. Enforce HTTPS (443)."})
+    elif dst_port in ['110', '143']:
+        findings.append({"severity": "Medium", "tag": "NIST 800-41", "desc": "POP3/IMAP email transmits in cleartext. Use secure IMAPS/POP3S."})
+    elif dst_port in ['161', '162']:
+        findings.append({"severity": "High", "tag": "NIST 800-41", "desc": "SNMPv1/v2c uses cleartext community strings. Upgrade to SNMPv3."})
+    elif dst_port == '389':
+        findings.append({"severity": "High", "tag": "NIST 800-41", "desc": "LDAP transmits directory credentials in cleartext. Use LDAPS (636)."})
+    elif dst_port in ['512', '513', '514']:
+        findings.append({"severity": "Critical", "tag": "NIST 800-41", "desc": "Legacy rsh/rlogin/rexec protocols are fundamentally insecure."})
 
-    # 2. Remote Desktop Targets
+    # 2. Remote Access / Desktop Protocols (Ransomware Targets)
     elif dst_port == '3389':
-        findings.append({
-            "severity": "Critical",
-            "tag": "NIST SP 800-41",
-            "issue": "Exposed Remote Desktop (RDP)",
-            "desc": "Violation: Direct RDP exposure. Framework Conflict: Exposing port 3389 breaks boundary protection principles since it is heavily targeted for credential brute-forcing and ransomware orchestration. Place behind a secure VPN gateway with Multi-Factor Authentication (MFA)."
-        })
+        findings.append({"severity": "Critical", "tag": "NIST 800-41", "desc": "RDP is highly targeted by ransomware. Place behind a VPN with MFA."})
     elif dst_port in ['5900', '5901']:
-        findings.append({
-            "severity": "Critical",
-            "tag": "NIST SP 800-41",
-            "issue": "Exposed VNC Service",
-            "desc": "Violation: Exposed unencrypted virtual network computing. Framework Conflict: Allows raw desktop viewing across unvetted networks, presenting an extreme risk of session takeover."
-        })
+        findings.append({"severity": "Critical", "tag": "NIST 800-41", "desc": "VNC remote access is highly vulnerable if exposed to untrusted networks."})
+    elif dst_port in ['6000', '6001']:
+        findings.append({"severity": "High", "tag": "NIST 800-41", "desc": "X11 window system lacks encryption and is vulnerable to session hijacking."})
 
-    # 3. Perimeter Worm Targets
     elif dst_port in ['135', '137', '138', '139', '445']:
-        findings.append({
-            "severity": "Critical",
-            "tag": "NIST SP 800-41",
-            "issue": "Exposed NetBIOS/SMB Fabric",
-            "desc": "Violation: Active file sharing protocol visible to public boundaries. Framework Conflict: Directly exposes network internal namespaces and file systems, creating a high risk of automated malware and lateral worm propagation across zones."
-        })
+        findings.append({"severity": "Critical", "tag": "NIST 800-41", "desc": "NetBIOS/SMB should NEVER cross a firewall boundary. High risk of worm propagation."})
+    elif dst_port == '111':
+        findings.append({"severity": "High", "tag": "NIST 800-41", "desc": "RPC portmapper is frequently exploited for DDoS amplification or enumeration."})
+    elif dst_port == '69':
+        findings.append({"severity": "Medium", "tag": "NIST 800-41", "desc": "TFTP has no authentication. Unsafe for cross-zone transfers."})
 
-    # 4. Database Isolation Targets
+    elif dst_port == '2375':
+        findings.append({"severity": "Critical", "tag": "NIST 800-41", "desc": "Unencrypted Docker API exposed. Allows full container takeover."})
+    elif dst_port == '6379':
+        findings.append({"severity": "Critical", "tag": "NIST 800-41", "desc": "Redis lacks default authentication. High risk of data wipe/crypto-mining."})
+    elif dst_port == '9200':
+        findings.append({"severity": "Critical", "tag": "NIST 800-41", "desc": "Elasticsearch API exposed. High risk of massive data exfiltration."})
+    elif dst_port == '11211':
+        findings.append({"severity": "High", "tag": "NIST 800-41", "desc": "Memcached exposed. Highly vulnerable to UDP DDoS amplification attacks."})
+
     elif dst_port in ['1433', '1434', '3306', '5432', '1521', '27017']:
-        findings.append({
-            "severity": "Critical",
-            "tag": "NIST SP 800-41",
-            "issue": "Direct External Database Exposure",
-            "desc": f"Violation: Firewall rule exposes internal relational/NoSQL storage engine on port {dst_port}. Framework Conflict: Directly violates network defense-in-depth segmentation models. Core repositories should remain isolated from internet segments."
-        })
-        findings.append({
-            "severity": "Critical",
-            "tag": "ISO 27001: A.13.2.1",
-            "issue": "Information Transfer Policy Breach",
-            "desc": f"Violation: Database endpoints accessible across outer firewalls. Framework Conflict: Fails data control segregation baselines by failing to isolate persistent data tables within standalone secure zones."
-        })
+        findings.append({"severity": "Critical", "tag": "NIST 800-41", "desc": f"Database port {dst_port} should never be reachable directly via the firewall."})
+        findings.append({"severity": "Critical", "tag": "ISO 27001: A.13.2.1", "desc": "Information transfer policy violation. Databases must reside in secure isolated zones."})
+
+        findings.append({"severity": "Critical", "tag": "PCI-DSS v4.0", "desc": "Req 1.3.1: Restrict inbound traffic to the cardholder data environment."})
+        findings.append({"severity": "Critical", "tag": "SOC 2", "desc": "CC6.6: Logical access security boundary failure."})
+    elif dst_port == '53' and str(rule.get('protocol', '')).strip().upper() == 'TCP':
+        findings.append({"severity": "Low", "tag": "NIST 800-41", "desc": "DNS over TCP allows zone transfers. Restrict to authorized secondary servers."})
+    elif dst_port == '5060':
+        findings.append({"severity": "Medium", "tag": "NIST 800-41", "desc": "SIP (VoIP) is unencrypted. Vulnerable to toll fraud and eavesdropping."})
+    elif dst_port in ['6667', '6668', '6669']:
+        findings.append({"severity": "High", "tag": "NIST 800-41", "desc": "IRC ports are frequently used for Botnet Command & Control (C2) traffic."})
 
     return findings if findings else None
 
@@ -93,24 +74,17 @@ def catch_dangerous_ports_and_crypto(rule):
 def catch_iso_shadow_rules(rule):
     """
     FRAMEWORK: ISO 27001 Annex A.12.1.1 (Documented Operating Procedures)
-    TARGET: Identifies dead, inactive rules causing rule-base bloat.
+    TARGET: Identifies orphaned rules causing router bloat.
     """
-    # TASK ACCOMPLISHED: Safely read attributes and ignore analysis completely if src_port is 'any'
-    src_port = str(rule.get('src_port', '')).strip().lower()
-    if src_port == 'any':
-        return None
+    # 🟢 THE FIX: Check for None and catch TypeError
+    raw_hits = rule.get('hit_count', 1)
+    try:
+        hits = int(raw_hits) if raw_hits is not None else 1
+    except (ValueError, TypeError):
+        hits = 1
 
-    # Handle numeric type extraction safely based on reader.py specifications
-    hit_count = rule.get('hit_count')
-
-    # TASK ACCOMPLISHED: Write logic to check if hit count == 0 and generate a robust compliance violation description
-    if hit_count == 0:
-        return [{
-            "severity": "Low",
-            "tag": "ISO 27001: A.12.1.1",
-            "issue": "Inactive Shadow Rule Detected",
-            "desc": "Violation: Redundant firewall policy entry registering 0 operational packet hits. Framework Conflict: Retaining unutilized rules creates policy base 'bloat', slows configuration processing times, and obscures active rules during incident responses. This indicates a failure to maintain standard system operations lifecycle reviews."
-        }]
+    if hits == 0:
+        return [{"severity": "Low", "tag": "ISO 27001: A.12.1.1", "desc": "0 hits detected. Demonstrates lack of rule lifecycle maintenance."}]
     return None
 
 
@@ -124,12 +98,7 @@ def catch_iso_lazy_access(rule):
     action = str(rule.get('action', '')).strip().lower()
 
     if src_ip in ['any', '0.0.0.0/0'] and dst_ip in ['any', '0.0.0.0/0'] and action in ['allow', 'accept', 'permit']:
-        return [{
-            "severity": "High",
-            "tag": "ISO 27001: A.9.1.2",
-            "issue": "Overly Permissive Access Rule",
-            "desc": "Violation: Full 'Any-to-Any' traffic permission. Framework Conflict: Bypasses network access segregation matrices and violates the Principle of Least Privilege. Access must be granted based on specific, justified business needs."
-        }]
+        return [{"severity": "High", "tag": "ISO 27001: A.9.1.2", "desc": "Permissive 'Any-to-Any' access detected. Access must be explicitly granted based on business need."}]
     return None
 
 
@@ -141,12 +110,7 @@ def catch_iso_missing_logs(rule):
     action = str(rule.get('action', '')).strip().lower()
 
     if 'log' not in action and action in ['allow', 'accept', 'permit']:
-        return [{
-            "severity": "Low",
-            "tag": "ISO 27001: A.12.4.1",
-            "issue": "Missing Audit Trails",
-            "desc": "Violation: Active allowance rule operates without an explicit log trace keyword. Framework Conflict: Breaks event logging principles. Independent audit logs must exist to track perimeter connection events for forensic analysis."
-        }]
+        return [{"severity": "Low", "tag": "ISO 27001: A.12.4.1", "desc": "Allowed traffic lacks explicit logging command. Audit trails are required for security events."}]
     return None
 
 
@@ -161,12 +125,7 @@ def catch_iso_any_source_admin(rule):
 
     if action in ['allow', 'accept', 'permit'] and src_ip in ['any', '0.0.0.0/0']:
         if dst_port in ['22', '3389', '443']:
-            return [{
-                "severity": "Critical",
-                "tag": "ISO 27001: A.13.1.1",
-                "issue": "Exposed Management Access Control",
-                "desc": f"Violation: Gateway management port {dst_port} open to generic source domains. Framework Conflict: Exposes device control planes to arbitrary internet scans, bypassing structural access segmentation controls. Enforce specialized source white-lists or an internal VPN access path."
-            }]
+            return [{"severity": "Critical", "tag": "ISO 27001: A.13.1.1", "desc": f"Management port {dst_port} is exposed to 'Any' source. Requires strict IP whitelisting or VPN."}]
     return None
 
 SECURITY_CHECKS = [
