@@ -76,25 +76,19 @@ function loadReportIntoUI(index) {
     const rulesListEl = document.getElementById('ui-action-rules-list');
     rulesListEl.innerHTML = '';
 
-    // ── FIX 1 ────────────────────────────────────────────────────────
-    // Use ALL rules — not just CRITICAL/HIGH — so every Keep/Remove
-    // decision made on the dashboard is counted in the summary bar.
-    // Rules with status MEDIUM/LOW that were acted on were previously
-    // silently excluded, making Kept always show 0.
-    // ─────────────────────────────────────────────────────────────────
     const allRules = reportData.rules || [];
 
-    // ── FIX 2 ────────────────────────────────────────────────────────
-    // Count decisions across EVERY rule, not just the displayed subset.
-    // This ensures Rules Kept + Rules Removed + Pending = total rules,
-    // matching the dashboard progress card exactly.
-    // ─────────────────────────────────────────────────────────────────
+    // Decisions are namespaced by filename: { filename: { rule_id: decision } }
+    // Pull only the decisions that belong to this specific file.
+    const fileDecisions = GLOBAL_DECISIONS[reportData.filename] || {};
+
+    // Count decisions across every rule for this file only
     let keptCount    = 0;
     let removedCount = 0;
     let pendingCount = 0;
 
     allRules.forEach(rule => {
-        const decision = GLOBAL_DECISIONS[rule.rule_id];
+        const decision = fileDecisions[rule.rule_id];
         if (decision === "Keep")        keptCount++;
         else if (decision === "Remove") removedCount++;
         else                            pendingCount++;
@@ -102,7 +96,7 @@ function loadReportIntoUI(index) {
 
     // For the visible list: show rules that have a decision OR are high-severity
     const displayRules = allRules.filter(rule => {
-        const decision = GLOBAL_DECISIONS[rule.rule_id];
+        const decision = fileDecisions[rule.rule_id];
         const isActioned     = decision === "Keep" || decision === "Remove";
         const isHighSeverity = rule.status === 'CRITICAL' || rule.status === 'HIGH';
         return isActioned || isHighSeverity;
@@ -113,7 +107,7 @@ function loadReportIntoUI(index) {
             '<div style="padding: 10px; color: var(--muted);">No immediate actions required for this file.</div>';
     } else {
         displayRules.forEach(rule => {
-            const decision = GLOBAL_DECISIONS[rule.rule_id];
+            const decision = fileDecisions[rule.rule_id];
 
             let badgeClass = "rcb-pending";
             let badgeText  = "Pending";

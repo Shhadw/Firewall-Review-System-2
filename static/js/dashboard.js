@@ -3,6 +3,7 @@
 // --- Global State Variables ---
 let globalRules = [];
 let globalDecisions = {};
+let globalScanFilename = 'scan';
 let filterUnreviewed = false;
 let sortSeverity = false;
 
@@ -31,6 +32,11 @@ document.addEventListener('DOMContentLoaded', () => {
             sortBtn.style.color = sortSeverity ? 'var(--accent)' : '';
             populateRuleTable(); // Redraw the table
         });
+    }
+
+    const exportBtn = document.querySelector('.export-btn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', exportAuditLogs);
     }
 });
 
@@ -62,6 +68,8 @@ async function fetchDashboardData() {
         if(dashboardContent) dashboardContent.style.display = 'flex';
 
         globalRules = data.rules || [];
+        globalScanFilename = data.filename || 'scan';
+        // data.decisions is already pre-filtered to this file by the server
         globalDecisions = data.decisions || {};
 
         // Update Top Stats
@@ -78,7 +86,7 @@ async function fetchDashboardData() {
         if (statusCard && statusBadge) {
             statusCard.style.display = 'block';
             const filenameEl = document.getElementById('ui-filename');
-            if (filenameEl) filenameEl.innerText = data.filename || "Uploaded_CSV";
+            if (filenameEl) filenameEl.innerText = globalScanFilename;
 
             // Determine Status based on risks
             if (data.summary.critical > 0) {
@@ -155,7 +163,11 @@ async function makeDecision(ruleId, decisionAction) {
         await fetch('/decide', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ rule_id: ruleId, decision: decisionAction })
+            body: JSON.stringify({
+                rule_id: ruleId,
+                decision: decisionAction,
+                filename: globalScanFilename   // ← scope the save to this file
+            })
         });
 
         // Save locally and update UI instantly without reloading the whole page
@@ -196,65 +208,182 @@ function updateReviewProgress() {
     if (elProgressFill) elProgressFill.style.width = `${progressPercent}%`;
 }
 
-// Projects the finding to the bottom panel instead of expanding a row
 function showFindings(ruleId) {
     const panelContainer = document.getElementById('ui-global-findings-panel');
     const rule = globalRules.find(r => r.rule_id === ruleId);
 
-    // If the rule has no findings, hide the panel
+    // 1. Safety check
     if (!rule || !rule.findings || rule.findings.length === 0) {
-        panelContainer.style.display = "none";
+        if (panelContainer) panelContainer.style.display = "none";
         return;
     }
 
-    const f = rule.findings[0];
+    const complianceText = getComplianceText ? getComplianceText(rule) : "N/A";
 
-    // Dynamically assign tag class in the bottom panel
-    let fTagClass = "vtag-nist";
-    if (f.tag.includes("ISO")) fTagClass = "vtag-iso";
-    else if (f.tag.includes("PCI")) fTagClass = "vtag-pci";
-    else if (f.tag.includes("CIS")) fTagClass = "vtag-cis";
-    else if (f.tag.includes("SOC")) fTagClass = "vtag-soc2";
-    else if (f.tag.includes("HIPAA")) fTagClass = "vtag-hipaa";
-    else if (f.tag.includes("COBIT")) fTagClass = "vtag-cobit";
-    else if (f.tag.includes("CSF")) fTagClass = "vtag-nistcsf";
+    // 2. Generate the rows and identify the primary finding for the sidebar
+    const firstFinding = rule.findings[0];
+    const findingsHtml = rule.findings.map(finding => {
+        const tagName = String(finding.tag || 'Compliance Finding');
+        let tagClass = "vtag-nist";
+        if (tagName.includes("ISO")) tagClass = "vtag-iso";
+        else if (tagName.includes("PCI")) tagClass = "vtag-pci";
+        else if (tagName.includes("CIS")) tagClass = "vtag-cis";
+        else if (tagName.includes("SOC")) tagClass = "vtag-soc2";
+        else if (tagName.includes("HIPAA")) tagClass = "vtag-hipaa";
+        else if (tagName.includes("COBIT")) tagClass = "vtag-cobit";
+        else if (tagName.includes("CSF")) tagClass = "vtag-nistcsf";
 
-    // Inject the HTML into our dedicated box at the bottom
-    panelContainer.innerHTML = `
-        <div class="findings-panel" style="border-top: 1px solid var(--border2); border-radius: 8px;">
-            <div class="findings-title" style="display: flex; justify-content: space-between; align-items: center;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 1L1 14h14L8 1z"/><path d="M8 6v4M8 12v.5"/></svg>
-                    Compliance Findings – Rule ${rule.rule_id}
+        return `
+            <div class="finding-row" style="margin-bottom: 12px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 4px;">
+                <span class="ftag ${tagClass}">${tagName}</span>
+                <div class="finding-meta">
+                    <div class="finding-desc" style="font-size: 0.9em; margin-top: 5px;">${finding.desc || 'No description available.'}</div>
+                    <div class="finding-severity" style="font-size: 0.8em; color: var(--muted);">Severity: ${finding.severity || 'UNKNOWN'}</div>
                 </div>
-                <button onclick="document.getElementById('ui-global-findings-panel').style.display='none'" style="background: none; border: none; color: var(--muted); cursor: pointer; font-size: 20px; line-height: 1;">&times;</button>
             </div>
-            <div class="findings-body">
-                <div class="findings-left">
-                    <div class="sev-row">
-                        <span class="sev-badge">Severity: ${f.severity}</span>
-                    </div>
-                    <p class="findings-desc">${f.desc}</p>
-                    <div class="findings-tags">
-                        <span class="ftag ${fTagClass}" style="border: 1px solid currentColor;">${f.tag}</span>
-                    </div>
+        `;
+    }).join('');
+
+    // 3. Set the HTML (Replaced undefined 'f' with 'firstFinding')
+    panelContainer.innerHTML = `
+    <div class="findings-panel" style="
+        background-color: #0d1117; /* Solid Dark Background */
+        border: 1px solid #30363d; 
+        border-radius: 12px; 
+        max-width: 900px; 
+        width: 95%; 
+        color: #c9d1d9;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.5); /* Adds depth */
+        overflow: hidden;
+    ">
+        <!-- Header -->
+        <div class="findings-header" style="padding: 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #30363d;">
+            <div style="display: flex; align-items: center; gap: 10px; font-weight: 600; color: #58a6ff;">
+                <span style="color: #f85149;">⚠</span> 
+                Compliance Findings – Rule ${rule.rule_id}
+            </div>
+            <button onclick="document.getElementById('ui-global-findings-panel').style.display='none'" style="background: none; border: none; color: #8b949e; cursor: pointer; font-size: 24px;">&times;</button>
+        </div>
+
+        <div class="findings-body" style="display: flex; padding: 24px; gap: 24px; background: #0d1117;">
+            <!-- Left Side: Findings -->
+            <div class="findings-left" style="flex: 1.5;">
+                <div style="margin-bottom: 20px;">
+                    <div style="color: #8b949e; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">Overall Compliance:</div>
+                    <div style="font-weight: 700; color: #f0f6fc; font-size: 1.1em;">${complianceText}</div>
                 </div>
-                <div class="findings-right">
-                    <div class="rec-label">
-                        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
-                        Recommendation
-                    </div>
-                    <p class="rec-text">Review and modify this rule to ensure compliance with ${f.tag} protocols. Consider implementing strict IP whitelisting.</p>
+                
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    ${findingsHtml}
                 </div>
+            </div>
+
+            <!-- Right Side: Recommendation -->
+            <div class="findings-right" style="flex: 1; padding: 24px; background: rgba(56, 139, 253, 0.05); border-radius: 8px; border: 1px solid rgba(56, 139, 253, 0.15); height: fit-content;">
+                <div style="display: flex; align-items: center; gap: 8px; color: #3fb950; font-weight: 600; margin-bottom: 12px;">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="7"/><path d="M8 4v4l2 2"/></svg>
+                    RECOMMENDATION
+                </div>
+                <p style="font-size: 0.9em; line-height: 1.6; color: #8b949e;">
+                    Review and modify this rule to ensure compliance with <strong>${rule.findings[0].tag}</strong> protocols. Consider implementing strict IP whitelisting and rule refinement.
+                </p>
             </div>
         </div>
-    `;
+    </div>
+`;
 
-    // Reveal the panel
-    panelContainer.style.display = "block";
+    // 4. Reveal the modal
+    panelContainer.style.display = "grid";
+    panelContainer.style.position = "fixed";
+    panelContainer.style.top = "0";
+    panelContainer.style.left = "0";
+    panelContainer.style.width = "100%";
+    panelContainer.style.height = "100%";
+    panelContainer.style.zIndex = "1000";
+    panelContainer.style.backgroundColor = "rgba(0,0,0,0.8)";
+    panelContainer.style.placeItems = "center";
 
-    // Smoothly scroll down so the user sees the panel opened
-    panelContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    // Close when clicking background
+    panelContainer.onclick = (event) => {
+        if (event.target === panelContainer) {
+            panelContainer.style.display = 'none';
+        }
+    };
+}
+
+function getDisplayedRules() {
+    let rulesToDisplay = [...globalRules];
+
+    if (filterUnreviewed) {
+        rulesToDisplay = rulesToDisplay.filter(rule => !globalDecisions[rule.rule_id]);
+    }
+
+    if (sortSeverity) {
+        const severityWeights = { "CRITICAL": 4, "HIGH": 3, "MEDIUM": 2, "LOW": 1, "OK": 0 };
+        rulesToDisplay.sort((a, b) => {
+            const weightA = severityWeights[a.status] || 0;
+            const weightB = severityWeights[b.status] || 0;
+            return weightB - weightA;
+        });
+    }
+
+    return rulesToDisplay;
+}
+
+function csvEscape(value) {
+    if (value === null || value === undefined) return '';
+    const text = String(value);
+    if (/[",\r\n]/.test(text)) {
+        return `"${text.replace(/"/g, '""')}"`;
+    }
+    return text;
+}
+
+function getComplianceText(rule) {
+    if (!rule.findings || rule.findings.length === 0) {
+        return 'None';
+    }
+    return rule.findings.map(f => f.tag || f.desc || 'Compliance Finding').join('; ');
+}
+
+function exportAuditLogs() {
+    const exportRows = getDisplayedRules();
+    if (!exportRows.length) {
+        alert('No rules available to export.');
+        return;
+    }
+
+    const headers = ['Rule ID', 'Source IP', 'Dest IP', 'Port', 'Protocol', 'Hits', 'Status', 'Compliance', 'Decision'];
+    const csvLines = [headers.map(csvEscape).join(',')];
+
+    exportRows.forEach(rule => {
+        const row = [
+            rule.rule_id,
+            rule.src_ip,
+            rule.dst_ip,
+            rule.dst_port,
+            rule.protocol,
+            rule.hit_count,
+            rule.status,
+            getComplianceText(rule),
+            globalDecisions[rule.rule_id] || 'Pending'
+        ];
+        csvLines.push(row.map(csvEscape).join(','));
+    });
+
+    const scanBase = String(globalScanFilename).replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const filename = `${scanBase}_${new Date().toISOString().slice(0,10)}.csv`;
+    const csvContent = csvLines.join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
 }
 
 // Builds the table dynamically
