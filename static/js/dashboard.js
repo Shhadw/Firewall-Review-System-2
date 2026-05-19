@@ -82,28 +82,54 @@ async function fetchDashboardData() {
         // Update Danger Card (Now Dynamic)
         const statusCard = document.getElementById('ui-danger-card');
         const statusBadge = document.getElementById('ui-status-badge');
+        const rs = data.report_summary || {};
 
         if (statusCard && statusBadge) {
             statusCard.style.display = 'block';
             const filenameEl = document.getElementById('ui-filename');
             if (filenameEl) filenameEl.innerText = globalScanFilename;
 
-            // Determine Status based on risks
-            if (data.summary.critical > 0) {
+            // Use Python-computed status (NIST 800-30 worst-case-wins)
+            const pyStatus = (rs.status || '').toUpperCase();
+            if (pyStatus === 'DANGER' || data.summary.critical > 0) {
                 statusCard.style.background = 'var(--danger-bg)';
                 statusCard.style.borderColor = 'var(--danger-bd)';
                 statusBadge.style.background = 'var(--critical)';
                 statusBadge.innerText = 'DANGER';
-            } else if (data.summary.high > 0 || data.summary.medium > 0) {
-                statusCard.style.background = '#2b2210'; // Dark Warning Orange
+            } else if (pyStatus === 'WARNING' || data.summary.high > 0 || data.summary.medium > 0) {
+                statusCard.style.background = '#2b2210';
                 statusCard.style.borderColor = '#8a651a';
                 statusBadge.style.background = 'var(--medium)';
                 statusBadge.innerText = 'WARNING';
+            } else if (pyStatus === 'CAUTION') {
+                statusCard.style.background = '#241f0a';
+                statusCard.style.borderColor = '#6b5c1a';
+                statusBadge.style.background = '#b8860b';
+                statusBadge.innerText = 'CAUTION';
             } else {
-                statusCard.style.background = '#121c18'; // Dark Secure Green
+                statusCard.style.background = '#121c18';
                 statusCard.style.borderColor = '#235c45';
                 statusBadge.style.background = 'var(--low)';
                 statusBadge.innerText = 'SECURE';
+            }
+
+            // Avg severity score — colour by value
+            const avgEl = document.getElementById('ui-avg-score');
+            if (avgEl) {
+                const avg = rs.average_severity_score != null ? rs.average_severity_score : null;
+                if (avg !== null) {
+                    avgEl.innerText = avg.toFixed(2);
+                    avgEl.style.color = avg >= 9 ? 'var(--critical)' : avg >= 7 ? 'var(--high)' : avg >= 4 ? 'var(--medium)' : 'var(--low)';
+                } else {
+                    avgEl.innerText = 'N/A';
+                }
+            }
+
+            // Rules needing action count
+            const actionEl = document.getElementById('ui-action-count');
+            if (actionEl) {
+                const actionRules = rs.rule_needing_action || [];
+                actionEl.innerText = actionRules.length;
             }
         }
 

@@ -8,6 +8,7 @@ from flask import Flask, render_template, request, jsonify, session, redirect
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'modules'))
 from analyzer import analyze_rule
 from reader import process_logs_csv, process_rules_csv
+from reporter import generate_summary
 
 app = Flask(__name__)
 app.secret_key = 'plm_defense_super_secret_key'
@@ -263,9 +264,21 @@ def upload():
                 elif status == "MEDIUM": summary["medium"] += 1
                 elif status == "LOW": summary["low"] += 1
 
+            # Collect all findings across rules for generate_summary
+            all_findings = []
+            for rule in analyzed_rules:
+                for f in rule.get('findings', []):
+                    all_findings.append({
+                        'severity': f.get('severity', '').lower(),
+                        'issue':    f.get('desc', 'Unknown Issue'),
+                        'rule_id':  rule['rule_id']
+                    })
+            report_summary = generate_summary(all_findings)
+
             session['current_scan'] = {
                 "filename": rules_file.filename,
                 "summary": summary,
+                "report_summary": report_summary,
                 "rules": analyzed_rules,
                 "logs": normalized_logs
             }
@@ -278,6 +291,7 @@ def upload():
             history_entry = {
                 'filename': rules_file.filename,
                 'summary': summary,
+                'report_summary': report_summary,
                 'rules': analyzed_rules,
                 'logs': normalized_logs
             }

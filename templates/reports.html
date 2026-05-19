@@ -80,7 +80,12 @@
                 </button>
             </div>
 
-            <div class="rc-total" id="ui-total-risks">Total Risks: 0</div>
+            <div class="rc-total" style="display:flex; align-items:baseline; gap:16px; flex-wrap:wrap;">
+                <span id="ui-total-risks">Total Risks: 0</span>
+                <span style="font-size:0.82em; color:var(--muted); font-family:'JetBrains Mono',monospace;">
+                    Avg Score: <span id="ui-avg-score" style="color:var(--high); font-weight:600;">—</span>
+                </span>
+            </div>
 
             <div class="rc-risk-grid">
                 <div class="rc-risk-cell">

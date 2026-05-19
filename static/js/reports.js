@@ -73,6 +73,19 @@ function loadReportIntoUI(index) {
     document.getElementById('ui-risk-medium').innerText   = medium;
     document.getElementById('ui-risk-low').innerText      = low;
 
+    // Avg severity score from generate_summary
+    const avgEl = document.getElementById('ui-avg-score');
+    if (avgEl) {
+        const rs = reportData.report_summary || {};
+        const avg = rs.average_severity_score != null ? rs.average_severity_score : null;
+        if (avg !== null) {
+            avgEl.innerText = avg.toFixed(2);
+            avgEl.style.color = avg >= 9 ? 'var(--critical)' : avg >= 7 ? 'var(--high)' : avg >= 4 ? 'var(--medium)' : 'var(--low)';
+        } else {
+            avgEl.innerText = 'N/A';
+        }
+    }
+
     const rulesListEl = document.getElementById('ui-action-rules-list');
     rulesListEl.innerHTML = '';
 
