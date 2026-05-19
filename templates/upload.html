@@ -58,48 +58,34 @@
     <main class="newscan-content">
         <div class="newscan-card">
             <div class="newscan-heading">
-                <div class="newscan-title">Upload Firewall Rules and Logs</div>
-                <div class="newscan-subtitle">Upload your firewall rule CSV and optional firewall log file (.log) to begin analysis.</div>
+                <div class="newscan-title">Upload Firewall Rules</div>
+                <div class="newscan-subtitle">Upload your network firewall configuration CSV to begin analysis.</div>
             </div>
 
             <form id="uploadForm">
-                <div class="dual-dropzone">
-                    <div class="dropzone" onclick="document.getElementById('rulesFile').click()">
-                        <div class="dropzone-icon">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                        </div>
-                        <input type="file" id="rulesFile" name="rules_file" accept=".csv" style="display: none;" />
-                        <div class="dropzone-text" id="rulesFileName">Drop firewall rules (.csv) here or click to browse</div>
-                        <div class="dropzone-format">Rule (.csv)</div>
+                <div class="dropzone" onclick="document.getElementById('csvFile').click()">
+                    <div class="dropzone-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                     </div>
-                    <div class="dropzone" onclick="document.getElementById('logsFile').click()">
-                        <div class="dropzone-icon">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                        </div>
-                        <input type="file" id="logsFile" name="logs_file" accept=".log" style="display: none;" />
-                        <div class="dropzone-text" id="logsFileName">Drop firewall logs (.log) here or click to browse</div>
-                        <div class="dropzone-format">Logs (.log)</div>
-                    </div>
+                    <input type="file" id="csvFile" name="file" accept=".csv" style="display: none;" onchange="document.getElementById('fileNameText').innerText = this.files[0].name" />
+                    <div class="dropzone-text" id="fileNameText">Drop your firewall CSV here or click to browse</div>
+                    <div class="dropzone-format">Supported Format: .CSV</div>
                 </div>
 
                 <div class="colmap-block" style="margin-top: 20px;">
-                    <div class="colmap-label">Required Rule Columns</div>
+                    <div class="colmap-label">Required Column Mapping</div>
                     <div class="colmap-tags">
-                        <span class="coltag">order</span><span class="coltag">protocol</span><span class="coltag">src_ip</span><span class="coltag">src_port</span><span class="coltag">dst_ip</span><span class="coltag">dst_port</span>
-                    </div>
-                    <div class="colmap-label" style="margin-top: 14px;">Required Log Columns (space-separated)</div>
-                    <div class="colmap-tags">
-                        <span class="coltag">date</span><span class="coltag">time</span><span class="coltag">action</span><span class="coltag">protocol</span><span class="coltag">src-ip</span><span class="coltag">src-port</span><span class="coltag">dst-ip</span><span class="coltag">dst-port</span>
+                        <span class="coltag">order</span><span class="coltag">protocol</span><span class="coltag">src_ip</span><span class="coltag">src_port</span><span class="coltag">dst_ip</span><span class="coltag">dst_port</span><span class="coltag">action</span><span class="coltag">hit_count</span>
                     </div>
                 </div>
 
-                <button type="submit" id="analyzeBtn" class="analyze-btn" style="margin-top: 20px;" disabled>
-                    <span class="btn-arrow">→</span> Analyze
+                <div id="status" class="hidden info-bar" style="margin-top: 20px; font-weight: bold;">
+                    <span id="statusMessage"></span>
+                </div>
+
+                <button type="submit" class="analyze-btn" style="margin-top: 20px;">
+                    <span class="btn-arrow">→</span> Analyze Rules
                 </button>
-
-                <div id="status" class="status-box hidden" style="margin-top: 20px;">
-                    <div id="statusMessage" class="status-message"></div>
-                </div>
             </form>
 
             <div class="newscan-meta">

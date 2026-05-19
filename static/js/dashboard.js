@@ -3,7 +3,6 @@
 // --- Global State Variables ---
 let globalRules = [];
 let globalDecisions = {};
-let globalScanFilename = 'scan';
 let filterUnreviewed = false;
 let sortSeverity = false;
 
@@ -32,11 +31,6 @@ document.addEventListener('DOMContentLoaded', () => {
             sortBtn.style.color = sortSeverity ? 'var(--accent)' : '';
             populateRuleTable(); // Redraw the table
         });
-    }
-
-    const exportBtn = document.querySelector('.export-btn');
-    if (exportBtn) {
-        exportBtn.addEventListener('click', exportAuditLogs);
     }
 });
 
@@ -84,7 +78,6 @@ async function fetchDashboardData() {
         if (statusCard && statusBadge) {
             statusCard.style.display = 'block';
             const filenameEl = document.getElementById('ui-filename');
-            globalScanFilename = data.filename || 'scan';
             if (filenameEl) filenameEl.innerText = data.filename || "Uploaded_CSV";
 
             // Determine Status based on risks
@@ -214,28 +207,17 @@ function showFindings(ruleId) {
         return;
     }
 
-    const complianceText = getComplianceText(rule);
-    const findingsHtml = rule.findings.map(finding => {
-        const tagName = String(finding.tag || 'Compliance Finding');
-        let tagClass = "vtag-nist";
-        if (tagName.includes("ISO")) tagClass = "vtag-iso";
-        else if (tagName.includes("PCI")) tagClass = "vtag-pci";
-        else if (tagName.includes("CIS")) tagClass = "vtag-cis";
-        else if (tagName.includes("SOC")) tagClass = "vtag-soc2";
-        else if (tagName.includes("HIPAA")) tagClass = "vtag-hipaa";
-        else if (tagName.includes("COBIT")) tagClass = "vtag-cobit";
-        else if (tagName.includes("CSF")) tagClass = "vtag-nistcsf";
+    const f = rule.findings[0];
 
-        return `
-            <div class="finding-row">
-                <span class="ftag ${tagClass}">${tagName}</span>
-                <div class="finding-meta">
-                    <div class="finding-desc">${finding.desc || 'No description available.'}</div>
-                    <div class="finding-severity">Severity: ${finding.severity || 'UNKNOWN'}</div>
-                </div>
-            </div>
-        `;
-    }).join('');
+    // Dynamically assign tag class in the bottom panel
+    let fTagClass = "vtag-nist";
+    if (f.tag.includes("ISO")) fTagClass = "vtag-iso";
+    else if (f.tag.includes("PCI")) fTagClass = "vtag-pci";
+    else if (f.tag.includes("CIS")) fTagClass = "vtag-cis";
+    else if (f.tag.includes("SOC")) fTagClass = "vtag-soc2";
+    else if (f.tag.includes("HIPAA")) fTagClass = "vtag-hipaa";
+    else if (f.tag.includes("COBIT")) fTagClass = "vtag-cobit";
+    else if (f.tag.includes("CSF")) fTagClass = "vtag-nistcsf";
 
     // Inject the HTML into our dedicated box at the bottom
     panelContainer.innerHTML = `
@@ -249,109 +231,30 @@ function showFindings(ruleId) {
             </div>
             <div class="findings-body">
                 <div class="findings-left">
-                    <div class="findings-summary">
-                        <div class="summary-label">Compliance:</div>
-                        <div class="summary-text">${complianceText}</div>
+                    <div class="sev-row">
+                        <span class="sev-badge">Severity: ${f.severity}</span>
                     </div>
-                    ${findingsHtml}
+                    <p class="findings-desc">${f.desc}</p>
+                    <div class="findings-tags">
+                        <span class="ftag ${fTagClass}" style="border: 1px solid currentColor;">${f.tag}</span>
+                    </div>
                 </div>
                 <div class="findings-right">
                     <div class="rec-label">
                         <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
                         Recommendation
                     </div>
-                    <p class="rec-text">Review and modify this rule to ensure compliance with the listed controls and tags. Consider implementing strict IP whitelisting and rule refinement.</p>
+                    <p class="rec-text">Review and modify this rule to ensure compliance with ${f.tag} protocols. Consider implementing strict IP whitelisting.</p>
                 </div>
             </div>
         </div>
     `;
 
-    // Reveal the modal overlay
-    panelContainer.style.display = "grid";
-    panelContainer.style.placeItems = "center";
-    panelContainer.style.padding = "32px";
+    // Reveal the panel
+    panelContainer.style.display = "block";
 
-    // Close when clicking outside the modal content
-    panelContainer.onclick = (event) => {
-        if (event.target === panelContainer) {
-            panelContainer.style.display = 'none';
-        }
-    };
-}
-
-function getDisplayedRules() {
-    let rulesToDisplay = [...globalRules];
-
-    if (filterUnreviewed) {
-        rulesToDisplay = rulesToDisplay.filter(rule => !globalDecisions[rule.rule_id]);
-    }
-
-    if (sortSeverity) {
-        const severityWeights = { "CRITICAL": 4, "HIGH": 3, "MEDIUM": 2, "LOW": 1, "OK": 0 };
-        rulesToDisplay.sort((a, b) => {
-            const weightA = severityWeights[a.status] || 0;
-            const weightB = severityWeights[b.status] || 0;
-            return weightB - weightA;
-        });
-    }
-
-    return rulesToDisplay;
-}
-
-function csvEscape(value) {
-    if (value === null || value === undefined) return '';
-    const text = String(value);
-    if (/[",\r\n]/.test(text)) {
-        return `"${text.replace(/"/g, '""')}"`;
-    }
-    return text;
-}
-
-function getComplianceText(rule) {
-    if (!rule.findings || rule.findings.length === 0) {
-        return 'None';
-    }
-    return rule.findings.map(f => f.tag || f.desc || 'Compliance Finding').join('; ');
-}
-
-function exportAuditLogs() {
-    const exportRows = getDisplayedRules();
-    if (!exportRows.length) {
-        alert('No rules available to export.');
-        return;
-    }
-
-    const headers = ['Rule ID', 'Source IP', 'Dest IP', 'Port', 'Protocol', 'Hits', 'Status', 'Compliance', 'Decision'];
-    const csvLines = [headers.map(csvEscape).join(',')];
-
-    exportRows.forEach(rule => {
-        const row = [
-            rule.rule_id,
-            rule.src_ip,
-            rule.dst_ip,
-            rule.dst_port,
-            rule.protocol,
-            rule.hit_count,
-            rule.status,
-            getComplianceText(rule),
-            globalDecisions[rule.rule_id] || 'Pending'
-        ];
-        csvLines.push(row.map(csvEscape).join(','));
-    });
-
-    const scanBase = String(globalScanFilename).replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '_');
-    const filename = `${scanBase}_${new Date().toISOString().slice(0,10)}.csv`;
-    const csvContent = csvLines.join('\r\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', filename);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    // Smoothly scroll down so the user sees the panel opened
+    panelContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 // Builds the table dynamically

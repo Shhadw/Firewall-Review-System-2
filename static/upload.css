@@ -1100,49 +1100,6 @@ body {
 .meta-token .val-valid { color: var(--low); }
 .meta-session .val-time { color: #8aabcc; }
 
-/* Status box for upload feedback */
-.status-box {
-  padding: 14px 16px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--card2);
-  color: var(--text);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.status-box.hidden {
-  display: none;
-}
-
-.status-box.error {
-  background: rgba(232, 64, 74, 0.12);
-  border-color: rgba(232, 64, 74, 0.4);
-  color: #ff9999;
-}
-
-.status-box.success {
-  background: rgba(76, 175, 136, 0.12);
-  border-color: rgba(76, 175, 136, 0.4);
-  color: #7ed3b2;
-}
-
-.status-message {
-  flex: 1;
-}
-
-.analyze-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.analyze-btn:disabled:hover {
-  filter: brightness(1);
-}
-
 
 /* ════════════════════════════════════════
    AURORA BACKGROUND SYSTEM
