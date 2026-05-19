@@ -68,6 +68,8 @@ async function fetchDashboardData() {
         if(dashboardContent) dashboardContent.style.display = 'flex';
 
         globalRules = data.rules || [];
+        globalScanFilename = data.filename || 'scan';
+        // data.decisions is already pre-filtered to this file by the server
         globalDecisions = data.decisions || {};
 
         // Update Top Stats
@@ -80,29 +82,54 @@ async function fetchDashboardData() {
         // Update Danger Card (Now Dynamic)
         const statusCard = document.getElementById('ui-danger-card');
         const statusBadge = document.getElementById('ui-status-badge');
+        const rs = data.report_summary || {};
 
         if (statusCard && statusBadge) {
             statusCard.style.display = 'block';
             const filenameEl = document.getElementById('ui-filename');
-            globalScanFilename = data.filename || 'scan';
-            if (filenameEl) filenameEl.innerText = data.filename || "Uploaded_CSV";
+            if (filenameEl) filenameEl.innerText = globalScanFilename;
 
-            // Determine Status based on risks
-            if (data.summary.critical > 0) {
+            // Use Python-computed status (NIST 800-30 worst-case-wins)
+            const pyStatus = (rs.status || '').toUpperCase();
+            if (pyStatus === 'DANGER' || data.summary.critical > 0) {
                 statusCard.style.background = 'var(--danger-bg)';
                 statusCard.style.borderColor = 'var(--danger-bd)';
                 statusBadge.style.background = 'var(--critical)';
                 statusBadge.innerText = 'DANGER';
-            } else if (data.summary.high > 0 || data.summary.medium > 0) {
-                statusCard.style.background = '#2b2210'; // Dark Warning Orange
+            } else if (pyStatus === 'WARNING' || data.summary.high > 0 || data.summary.medium > 0) {
+                statusCard.style.background = '#2b2210';
                 statusCard.style.borderColor = '#8a651a';
                 statusBadge.style.background = 'var(--medium)';
                 statusBadge.innerText = 'WARNING';
+            } else if (pyStatus === 'CAUTION') {
+                statusCard.style.background = '#241f0a';
+                statusCard.style.borderColor = '#6b5c1a';
+                statusBadge.style.background = '#b8860b';
+                statusBadge.innerText = 'CAUTION';
             } else {
-                statusCard.style.background = '#121c18'; // Dark Secure Green
+                statusCard.style.background = '#121c18';
                 statusCard.style.borderColor = '#235c45';
                 statusBadge.style.background = 'var(--low)';
                 statusBadge.innerText = 'SECURE';
+            }
+
+            // Avg severity score — colour by value
+            const avgEl = document.getElementById('ui-avg-score');
+            if (avgEl) {
+                const avg = rs.average_severity_score != null ? rs.average_severity_score : null;
+                if (avg !== null) {
+                    avgEl.innerText = avg.toFixed(2);
+                    avgEl.style.color = avg >= 9 ? 'var(--critical)' : avg >= 7 ? 'var(--high)' : avg >= 4 ? 'var(--medium)' : 'var(--low)';
+                } else {
+                    avgEl.innerText = 'N/A';
+                }
+            }
+
+            // Rules needing action count
+            const actionEl = document.getElementById('ui-action-count');
+            if (actionEl) {
+                const actionRules = rs.rule_needing_action || [];
+                actionEl.innerText = actionRules.length;
             }
         }
 
@@ -162,7 +189,11 @@ async function makeDecision(ruleId, decisionAction) {
         await fetch('/decide', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ rule_id: ruleId, decision: decisionAction })
+            body: JSON.stringify({
+                rule_id: ruleId,
+                decision: decisionAction,
+                filename: globalScanFilename   // ← scope the save to this file
+            })
         });
 
         // Save locally and update UI instantly without reloading the whole page
@@ -203,18 +234,20 @@ function updateReviewProgress() {
     if (elProgressFill) elProgressFill.style.width = `${progressPercent}%`;
 }
 
-// Projects the finding to the bottom panel instead of expanding a row
 function showFindings(ruleId) {
     const panelContainer = document.getElementById('ui-global-findings-panel');
     const rule = globalRules.find(r => r.rule_id === ruleId);
 
-    // If the rule has no findings, hide the panel
+    // 1. Safety check
     if (!rule || !rule.findings || rule.findings.length === 0) {
-        panelContainer.style.display = "none";
+        if (panelContainer) panelContainer.style.display = "none";
         return;
     }
 
-    const complianceText = getComplianceText(rule);
+    const complianceText = getComplianceText ? getComplianceText(rule) : "N/A";
+
+    // 2. Generate the rows and identify the primary finding for the sidebar
+    const firstFinding = rule.findings[0];
     const findingsHtml = rule.findings.map(finding => {
         const tagName = String(finding.tag || 'Compliance Finding');
         let tagClass = "vtag-nist";
@@ -227,51 +260,76 @@ function showFindings(ruleId) {
         else if (tagName.includes("CSF")) tagClass = "vtag-nistcsf";
 
         return `
-            <div class="finding-row">
+            <div class="finding-row" style="margin-bottom: 12px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 4px;">
                 <span class="ftag ${tagClass}">${tagName}</span>
                 <div class="finding-meta">
-                    <div class="finding-desc">${finding.desc || 'No description available.'}</div>
-                    <div class="finding-severity">Severity: ${finding.severity || 'UNKNOWN'}</div>
+                    <div class="finding-desc" style="font-size: 0.9em; margin-top: 5px;">${finding.desc || 'No description available.'}</div>
+                    <div class="finding-severity" style="font-size: 0.8em; color: var(--muted);">Severity: ${finding.severity || 'UNKNOWN'}</div>
                 </div>
             </div>
         `;
     }).join('');
 
-    // Inject the HTML into our dedicated box at the bottom
+    // 3. Set the HTML (Replaced undefined 'f' with 'firstFinding')
     panelContainer.innerHTML = `
-        <div class="findings-panel" style="border-top: 1px solid var(--border2); border-radius: 8px;">
-            <div class="findings-title" style="display: flex; justify-content: space-between; align-items: center;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 1L1 14h14L8 1z"/><path d="M8 6v4M8 12v.5"/></svg>
-                    Compliance Findings – Rule ${rule.rule_id}
-                </div>
-                <button onclick="document.getElementById('ui-global-findings-panel').style.display='none'" style="background: none; border: none; color: var(--muted); cursor: pointer; font-size: 20px; line-height: 1;">&times;</button>
+    <div class="findings-panel" style="
+        background-color: #0d1117; /* Solid Dark Background */
+        border: 1px solid #30363d; 
+        border-radius: 12px; 
+        max-width: 900px; 
+        width: 95%; 
+        color: #c9d1d9;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.5); /* Adds depth */
+        overflow: hidden;
+    ">
+        <!-- Header -->
+        <div class="findings-header" style="padding: 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #30363d;">
+            <div style="display: flex; align-items: center; gap: 10px; font-weight: 600; color: #58a6ff;">
+                <span style="color: #f85149;">⚠</span> 
+                Compliance Findings – Rule ${rule.rule_id}
             </div>
-            <div class="findings-body">
-                <div class="findings-left">
-                    <div class="findings-summary">
-                        <div class="summary-label">Compliance:</div>
-                        <div class="summary-text">${complianceText}</div>
-                    </div>
+            <button onclick="document.getElementById('ui-global-findings-panel').style.display='none'" style="background: none; border: none; color: #8b949e; cursor: pointer; font-size: 24px;">&times;</button>
+        </div>
+
+        <div class="findings-body" style="display: flex; padding: 24px; gap: 24px; background: #0d1117;">
+            <!-- Left Side: Findings -->
+            <div class="findings-left" style="flex: 1.5;">
+                <div style="margin-bottom: 20px;">
+                    <div style="color: #8b949e; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">Overall Compliance:</div>
+                    <div style="font-weight: 700; color: #f0f6fc; font-size: 1.1em;">${complianceText}</div>
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 12px;">
                     ${findingsHtml}
                 </div>
-                <div class="findings-right">
-                    <div class="rec-label">
-                        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
-                        Recommendation
-                    </div>
-                    <p class="rec-text">Review and modify this rule to ensure compliance with the listed controls and tags. Consider implementing strict IP whitelisting and rule refinement.</p>
+            </div>
+
+            <!-- Right Side: Recommendation -->
+            <div class="findings-right" style="flex: 1; padding: 24px; background: rgba(56, 139, 253, 0.05); border-radius: 8px; border: 1px solid rgba(56, 139, 253, 0.15); height: fit-content;">
+                <div style="display: flex; align-items: center; gap: 8px; color: #3fb950; font-weight: 600; margin-bottom: 12px;">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="7"/><path d="M8 4v4l2 2"/></svg>
+                    RECOMMENDATION
                 </div>
+                <p style="font-size: 0.9em; line-height: 1.6; color: #8b949e;">
+                    Review and modify this rule to ensure compliance with <strong>${rule.findings[0].tag}</strong> protocols. Consider implementing strict IP whitelisting and rule refinement.
+                </p>
             </div>
         </div>
-    `;
+    </div>
+`;
 
-    // Reveal the modal overlay
+    // 4. Reveal the modal
     panelContainer.style.display = "grid";
+    panelContainer.style.position = "fixed";
+    panelContainer.style.top = "0";
+    panelContainer.style.left = "0";
+    panelContainer.style.width = "100%";
+    panelContainer.style.height = "100%";
+    panelContainer.style.zIndex = "1000";
+    panelContainer.style.backgroundColor = "rgba(0,0,0,0.8)";
     panelContainer.style.placeItems = "center";
-    panelContainer.style.padding = "32px";
 
-    // Close when clicking outside the modal content
+    // Close when clicking background
     panelContainer.onclick = (event) => {
         if (event.target === panelContainer) {
             panelContainer.style.display = 'none';

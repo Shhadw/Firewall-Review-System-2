@@ -799,6 +799,27 @@ body {
   gap: 7px;
 }
 
+.ftag {
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 3px 9px;
+  border-radius: 3px;
+  background: rgba(76,158,245,0.12);
+  color: var(--tag-nist);
+  border: 1px solid rgba(76,158,245,0.3);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.findings-right {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px;
+  position: relative;
+  overflow: hidden;
+}
+
 #ui-global-findings-panel {
   position: fixed;
   inset: 0;
@@ -871,27 +892,6 @@ body {
   .findings-body {
     grid-template-columns: 1fr;
   }
-}
-
-.ftag {
-  font-family: var(--mono);
-  font-size: 10px;
-  padding: 3px 9px;
-  border-radius: 3px;
-  background: rgba(76,158,245,0.12);
-  color: var(--tag-nist);
-  border: 1px solid rgba(76,158,245,0.3);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-}
-
-.findings-right {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 14px;
-  position: relative;
-  overflow: hidden;
 }
 
 .rec-label {

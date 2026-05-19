@@ -8,6 +8,7 @@ from flask import Flask, render_template, request, jsonify, session, redirect
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'modules'))
 from analyzer import analyze_rule
 from reader import process_logs_csv, process_rules_csv
+from reporter import generate_summary
 
 app = Flask(__name__)
 app.secret_key = 'plm_defense_super_secret_key'
@@ -40,7 +41,6 @@ def simulate_live_traffic(parsed_rules):
         session['rule_history_memory'][rule_id] = rule['hit_count']
 
     return parsed_rules
-
 
 def _normalize_value(value):
     if value is None:
@@ -201,6 +201,7 @@ def dashboard():
 @app.route('/reports')
 def reports():
     history = session.get('history', [])
+    # Pass the full namespaced decisions dict; reports.js will look up by filename
     decisions = session.get('decisions', {})
     return render_template('reports.html', history=history, decisions=decisions)
 
@@ -239,6 +240,7 @@ def upload():
             normalized_logs = normalize_and_save_logs(raw_logs) if raw_logs else []
 
             analyzed_rules = []
+
             summary = {"total_rules": len(raw_rules), "critical": 0, "high": 0, "medium": 0, "low": 0}
 
             for rule in raw_rules:
@@ -262,19 +264,34 @@ def upload():
                 elif status == "MEDIUM": summary["medium"] += 1
                 elif status == "LOW": summary["low"] += 1
 
+            # Collect all findings across rules for generate_summary
+            all_findings = []
+            for rule in analyzed_rules:
+                for f in rule.get('findings', []):
+                    all_findings.append({
+                        'severity': f.get('severity', '').lower(),
+                        'issue':    f.get('desc', 'Unknown Issue'),
+                        'rule_id':  rule['rule_id']
+                    })
+            report_summary = generate_summary(all_findings)
+
             session['current_scan'] = {
                 "filename": rules_file.filename,
                 "summary": summary,
+                "report_summary": report_summary,
                 "rules": analyzed_rules,
                 "logs": normalized_logs
             }
 
             history = session.get('history', [])
+
+            # 🟢 THE FIX: Remove any existing report with the same filename to prevent duplicates!
             history = [h for h in history if h['filename'] != rules_file.filename]
 
             history_entry = {
                 'filename': rules_file.filename,
                 'summary': summary,
+                'report_summary': report_summary,
                 'rules': analyzed_rules,
                 'logs': normalized_logs
             }
@@ -291,7 +308,10 @@ def get_analysis_results():
     scan_data = session.get('current_scan')
     if not scan_data:
         return jsonify({"error": "No scan data found."}), 404
-    scan_data['decisions'] = session.get('decisions', {})
+    # Return only decisions that belong to this specific file
+    all_decisions = session.get('decisions', {})
+    filename = scan_data.get('filename', '')
+    scan_data['decisions'] = all_decisions.get(filename, {})
     return jsonify(scan_data)
 
 @app.route('/decide', methods=['POST'])
@@ -299,13 +319,17 @@ def decide():
     data = request.get_json()
     rule_id = str(data.get('rule_id'))
     decision = data.get('decision')
+    filename = data.get('filename', '')
 
     if decision not in ["Keep", "Remove"]:
         return jsonify({"error": "Invalid decision"}), 400
 
-    decisions = session.get('decisions', {})
-    decisions[rule_id] = decision
-    session['decisions'] = decisions
+    # decisions is now a dict-of-dicts: { filename: { rule_id: decision } }
+    all_decisions = session.get('decisions', {})
+    if filename not in all_decisions:
+        all_decisions[filename] = {}
+    all_decisions[filename][rule_id] = decision
+    session['decisions'] = all_decisions
     session.modified = True
 
     return jsonify({"status": "ok", "rule_id": rule_id, "decision": decision})
