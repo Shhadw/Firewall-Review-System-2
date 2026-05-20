@@ -48,7 +48,7 @@ def generate_summary(findings_list):
         system_status = "DANGER"
     elif worst_rank >= severity_rank["high"]:
         system_status = "WARNING"
-    elif worst_rank >= severity_rank["medium"]:
+    elif worst_rank >= severity_rank["medium"] or severity_count["low"] >= 3:
         system_status = "CAUTION"
     else:
         system_status = "SECURE"
