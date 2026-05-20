@@ -51,11 +51,11 @@ def generate_summary(findings_list):
         # 1 or more Critical instantly triggers DANGER
         system_status = "DANGER"
         
-    elif worst_rank >= severity_rank["high"] or severity_count["medium"] >= 3:
+    elif worst_rank >= severity_rank["high"] or severity_count["medium"] > 5:
         # 1 High OR an aggregation of 3+ Mediums triggers WARNING
         system_status = "WARNING"
         
-    elif worst_rank >= severity_rank["medium"] or severity_count["low"] >= 3:
+    elif worst_rank >= severity_rank["medium"] or severity_count["low"] > 5:
         # 1 Medium OR an aggregation of 3+ Lows triggers CAUTION
         system_status = "CAUTION"
         
