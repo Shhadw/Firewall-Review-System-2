@@ -152,11 +152,8 @@ async function fetchDashboardData() {
                 let tagClass = "vtag-nist"; // Default
 
                 if (tag.includes("ISO")) tagClass = "vtag-iso";
-                else if (tag.includes("PCI")) tagClass = "vtag-pci";
                 else if (tag.includes("CIS")) tagClass = "vtag-cis";
                 else if (tag.includes("SOC")) tagClass = "vtag-soc2";
-                else if (tag.includes("HIPAA")) tagClass = "vtag-hipaa";
-                else if (tag.includes("COBIT")) tagClass = "vtag-cobit";
                 else if (tag.includes("CSF")) tagClass = "vtag-nistcsf";
 
                 return `<span class="vtag ${tagClass}">${tag}</span>`;
@@ -252,11 +249,8 @@ function showFindings(ruleId) {
         const tagName = String(finding.tag || 'Compliance Finding');
         let tagClass = "vtag-nist";
         if (tagName.includes("ISO")) tagClass = "vtag-iso";
-        else if (tagName.includes("PCI")) tagClass = "vtag-pci";
         else if (tagName.includes("CIS")) tagClass = "vtag-cis";
         else if (tagName.includes("SOC")) tagClass = "vtag-soc2";
-        else if (tagName.includes("HIPAA")) tagClass = "vtag-hipaa";
-        else if (tagName.includes("COBIT")) tagClass = "vtag-cobit";
         else if (tagName.includes("CSF")) tagClass = "vtag-nistcsf";
 
         return `
