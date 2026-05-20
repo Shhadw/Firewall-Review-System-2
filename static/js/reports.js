@@ -1,5 +1,3 @@
-// static/js/reports.js
-
 document.addEventListener('DOMContentLoaded', () => {
     const selectEl = document.getElementById('ui-report-select');
     const loadBtn = document.getElementById('ui-load-btn');
@@ -73,10 +71,55 @@ function loadReportIntoUI(index) {
     document.getElementById('ui-risk-medium').innerText   = medium;
     document.getElementById('ui-risk-low').innerText      = low;
 
+    // --- DYNAMIC BADGE & CARD BORDER LOGIC ---
+    const rs = reportData.report_summary || {};
+    const pyStatus = (rs.status || '').toUpperCase();
+    const badgeEl = document.getElementById('ui-report-status-badge');
+    const badgeTextEl = document.getElementById('ui-report-status-text');
+    const cardEl = document.querySelector('.report-card');
+
+    if (badgeEl && badgeTextEl && cardEl) {
+        if (pyStatus === 'DANGER' || critical > 0) {
+            badgeEl.style.background = 'rgba(232, 64, 74, 0.15)';
+            badgeEl.style.borderColor = 'rgba(232, 64, 74, 0.40)';
+            badgeEl.style.color = 'var(--critical)';
+            badgeTextEl.innerText = 'DANGER';
+
+            // Set card border to red
+            cardEl.style.borderColor = 'var(--critical)';
+
+        } else if (pyStatus === 'WARNING' || high > 0 || medium > 0) {
+            badgeEl.style.background = 'rgba(240, 168, 50, 0.12)';
+            badgeEl.style.borderColor = 'rgba(240, 168, 50, 0.40)';
+            badgeEl.style.color = 'var(--high)';
+            badgeTextEl.innerText = 'WARNING';
+
+            // Set card border to yellow/orange
+            cardEl.style.borderColor = 'var(--high)';
+
+        } else if (pyStatus === 'CAUTION') {
+            badgeEl.style.background = 'rgba(184, 134, 11, 0.12)';
+            badgeEl.style.borderColor = 'rgba(184, 134, 11, 0.40)';
+            badgeEl.style.color = '#b8860b';
+            badgeTextEl.innerText = 'CAUTION';
+
+            // Set card border to caution color
+            cardEl.style.borderColor = '#b8860b';
+
+        } else {
+            badgeEl.style.background = 'rgba(76, 175, 136, 0.12)';
+            badgeEl.style.borderColor = 'rgba(76, 175, 136, 0.40)';
+            badgeEl.style.color = 'var(--low)';
+            badgeTextEl.innerText = 'SECURE';
+
+            // Set card border to green
+            cardEl.style.borderColor = 'var(--low)';
+        }
+    }
+
     // Avg severity score from generate_summary
     const avgEl = document.getElementById('ui-avg-score');
     if (avgEl) {
-        const rs = reportData.report_summary || {};
         const avg = rs.average_severity_score != null ? rs.average_severity_score : null;
         if (avg !== null) {
             avgEl.innerText = avg.toFixed(2);

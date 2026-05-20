@@ -43,14 +43,24 @@ def generate_summary(findings_list):
         if rank > worst_rank:
             worst_rank = rank
 
-    # determine system status, worst-case-wins (NIST 800-30)
+    # Determine system status using a hybrid model:
+    # 1. High Water Mark (NIST 800-30 Task 2-6) - worst-case-wins
+    # 2. Risk Aggregation / Vulnerability Chaining thresholds
+    
     if worst_rank >= severity_rank["critical"]:
+        # 1 or more Critical instantly triggers DANGER
         system_status = "DANGER"
-    elif worst_rank >= severity_rank["high"]:
+        
+    elif worst_rank >= severity_rank["high"] or severity_count["medium"] >= 3:
+        # 1 High OR an aggregation of 3+ Mediums triggers WARNING
         system_status = "WARNING"
+        
     elif worst_rank >= severity_rank["medium"] or severity_count["low"] >= 3:
+        # 1 Medium OR an aggregation of 3+ Lows triggers CAUTION
         system_status = "CAUTION"
+        
     else:
+        # If no severe risks and fewer than 3 lows are found
         system_status = "SECURE"
 
     # CVSS-based scoring
