@@ -465,7 +465,10 @@ function populateRuleTable() {
             <td>${hitsDisplay}</td>
             <td><span class="status-badge status-${rule.status.toLowerCase()}">${rule.status}</span></td>
 
-            <td><button class="comp-tag-btn" onclick="showFindings('${rule.rule_id}')">VIEW TAG <span class="arrow-dn">↓</span></button></td>
+            <td>${rule.findings && rule.findings.length > 0
+                ? `<button class="comp-tag-btn" onclick="showFindings('${rule.rule_id}')">VIEW TAG</button>`
+                : `<span class="comp-none">None</span>`
+            }</td>
 
             <td>
                 <div class="decision-cell">

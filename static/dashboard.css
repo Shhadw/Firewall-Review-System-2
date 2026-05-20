@@ -692,6 +692,11 @@ body {
 
 .comp-tag-btn .arrow-dn { font-size: 10px; color: var(--muted); margin-top: 1px; }
 
+.comp-none {
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
 /* Decision buttons */
 .decision-cell {
   display: flex;
